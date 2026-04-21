@@ -52,19 +52,59 @@ token from `firebase_auth` after the user signs in.
 ./mvnw -q -DskipTests package
 ```
 
-## Endpoints (planned)
+## Endpoints
 
 | Method | Path                       | Auth | Notes                                           |
 |--------|----------------------------|------|-------------------------------------------------|
-| GET    | `/api/auth/me`             | yes  | Returns the authenticated user profile.         |
-| GET    | `/api/jobs`                | yes  | Supports `type`, `experience`, `location`, `search`, `page`, `size`. |
-| GET    | `/api/jobs/{id}`           | yes  | Job details.                                    |
-| GET    | `/api/stats`               | yes  | Dashboard stats.                                |
-| POST   | `/api/assistant/message`   | yes  | Canned assistant reply.                         |
+| GET    | `/api/auth/me`             | yes  | Echoes the verified Firebase principal (`uid`, `email`, `name`). |
+| GET    | `/api/jobs`                | yes  | Filters: `type`, `experience`, `location`, `search`. Paging: `page` (default `0`), `size` (default `20`, max `100`). Returns `{content, page, size, total}`. |
+| GET    | `/api/jobs/{id}`           | yes  | Full job details including `description` and `skills`. 404 if unknown. |
+| GET    | `/api/stats`               | yes  | Dashboard summary: `{activePosts, newApplicants, interviewsToday}`. |
+| POST   | `/api/assistant/message`   | yes  | Body `{"message": "..."}` (non-blank, max 2000 chars). Returns `{reply, timestamp}` with a canned reply. |
 | GET    | `/actuator/health`         | no   | Liveness probe.                                 |
-| GET    | `/swagger-ui.html`         | no   | API documentation.                              |
+| GET    | `/swagger-ui.html`         | no   | Interactive API docs (OpenAPI 3).               |
 
-Endpoints are implemented in later phases; this README describes the target shape.
+### Example requests (dev mode)
+
+```bash
+# List the first 5 Full-time jobs in Cape Town
+curl 'http://localhost:8080/api/jobs?type=Full-time&location=Cape&size=5'
+
+# Fetch a single job
+curl http://localhost:8080/api/jobs/job-1
+
+# Dashboard stats
+curl http://localhost:8080/api/stats
+
+# Send an assistant message
+curl -X POST http://localhost:8080/api/assistant/message \
+  -H 'Content-Type: application/json' \
+  -d '{"message":"Tell me about open Flutter roles"}'
+
+# Identify the caller (dev mode returns the fake Dev Reviewer)
+curl http://localhost:8080/api/auth/me
+```
+
+In `firebase` mode every request above must additionally carry
+`Authorization: Bearer <firebase-id-token>`.
+
+### Error shape
+
+All errors are returned as JSON using a single consistent envelope:
+
+```json
+{
+  "timestamp": "2026-04-21T04:24:15Z",
+  "status": 404,
+  "error": "Not Found",
+  "message": "Job not found: abc",
+  "path": "/api/jobs/abc",
+  "fieldErrors": null
+}
+```
+
+Validation failures (e.g. `POST /api/assistant/message` with a blank
+message) populate `fieldErrors` with `{field, message}` entries.
 
 ## Configuration reference
 
@@ -76,7 +116,22 @@ Endpoints are implemented in later phases; this README describes the target shap
 | `firebase.credentials-json`      | `FIREBASE_CREDENTIALS_JSON`   | (empty)                                  | Raw service-account JSON. Takes precedence.   |
 | `firebase.credentials-path`      | `FIREBASE_CREDENTIALS_PATH`   | (empty)                                  | Absolute path to service-account JSON file.   |
 
-## Assumptions & trade-offs
+## Testing
+
+`./mvnw test` runs:
+
+- `JobServiceTest` — filter, pagination, search, and not-found logic against
+  the real in-memory repository.
+- `JobControllerTest` — MVC slice (`@SpringBootTest` + `MockMvc`) covering
+  list pagination, filters, details, 404, and invalid `type` handling.
+- `AssistantControllerTest` — canned reply happy path and `@Valid`-driven
+  400s for blank/missing messages.
+- `EtalenteApplicationTests` — context-loads smoke.
+
+All tests run under `app.auth.mode=dev`, so no Firebase credentials are
+required to execute the suite.
+
+
 
 1. **Real Firebase auth over mock login.** The spec allowed a mock
    `POST /api/auth/login`. Replaced with Firebase ID-token verification plus
