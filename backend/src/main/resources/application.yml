@@ -1,0 +1,56 @@
+server:
+  port: 8080
+  error:
+    include-message: always
+    include-binding-errors: always
+
+spring:
+  application:
+    name: etalente-backend
+  jackson:
+    default-property-inclusion: non_null
+
+# -----------------------------------------------------------------------------
+# Application configuration
+# -----------------------------------------------------------------------------
+app:
+  auth:
+    # 'firebase' verifies ID tokens with the Firebase Admin SDK.
+    # 'dev' bypasses verification and injects a fake principal — only for
+    # local development, tests, and reviewers without a Firebase project.
+    mode: ${APP_AUTH_MODE:dev}
+    dev-user:
+      uid: dev-user
+      email: dev@etalente.local
+      name: Dev Reviewer
+  cors:
+    # Comma-separated list of allowed origins for the Flutter client.
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:*,http://127.0.0.1:*}
+
+firebase:
+  project-id: ${FIREBASE_PROJECT_ID:}
+  # Provide exactly one of the following two; credentials-json takes precedence.
+  credentials-json: ${FIREBASE_CREDENTIALS_JSON:}
+  credentials-path: ${FIREBASE_CREDENTIALS_PATH:}
+
+# -----------------------------------------------------------------------------
+# Actuator — only health is exposed.
+# -----------------------------------------------------------------------------
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+
+# -----------------------------------------------------------------------------
+# OpenAPI / Swagger UI
+# -----------------------------------------------------------------------------
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
