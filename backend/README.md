@@ -42,6 +42,23 @@ The backend expects every `/api/**` request to carry
 `Authorization: Bearer <firebase-id-token>`. The Flutter client obtains the
 token from `firebase_auth` after the user signs in.
 
+### Sign in with Google
+
+The OAuth handshake happens entirely on the client via `firebase_auth`'s
+`GoogleAuthProvider` — the backend never sees Google's access token or
+client secret. Flow:
+
+1. Enable **Google** as a sign-in provider in Firebase console
+   (`Build → Authentication → Sign-in method`).
+2. In the Flutter app, call `FirebaseAuth.instance.signInWithProvider(GoogleAuthProvider())`
+   (or the platform-specific equivalent). Firebase returns an ID token whose
+   `firebase.sign_in_provider` claim is `google.com`.
+3. Send that ID token as `Authorization: Bearer <token>` to any `/api/**`
+   endpoint. `GET /api/auth/me` echoes the identity plus `signInProvider`;
+   `POST /api/auth/google-signin` additionally asserts the provider is
+   Google and rejects everything else with 401 — useful as a dedicated
+   smoke test after wiring Google sign-in on the client.
+
 ## Useful commands
 
 ```bash
@@ -56,7 +73,8 @@ token from `firebase_auth` after the user signs in.
 
 | Method | Path                       | Auth | Notes                                           |
 |--------|----------------------------|------|-------------------------------------------------|
-| GET    | `/api/auth/me`             | yes  | Echoes the verified Firebase principal (`uid`, `email`, `name`). |
+| GET    | `/api/auth/me`             | yes  | Echoes the verified Firebase principal (`uid`, `email`, `name`, `signInProvider`). |
+| POST   | `/api/auth/google-signin`  | yes  | Confirms the ID token was minted via Google Sign-In. 200 with identity if `sign_in_provider=google.com`, 401 otherwise. Body is ignored — the provider check reads the Firebase token claim. |
 | GET    | `/api/jobs`                | yes  | Filters: `type`, `experience`, `location`, `search`. Paging: `page` (default `0`), `size` (default `20`, max `100`). Returns `{content, page, size, total}`. |
 | GET    | `/api/jobs/{id}`           | yes  | Full job details including `description` and `skills`. 404 if unknown. |
 | GET    | `/api/stats`               | yes  | Dashboard summary: `{activePosts, newApplicants, interviewsToday}`. |
@@ -81,8 +99,13 @@ curl -X POST http://localhost:8080/api/assistant/message \
   -H 'Content-Type: application/json' \
   -d '{"message":"Tell me about open Flutter roles"}'
 
-# Identify the caller (dev mode returns the fake Dev Reviewer)
+# Identify the caller (dev mode returns the fake Dev Reviewer with signInProvider="dev")
 curl http://localhost:8080/api/auth/me
+
+# Confirm the caller signed in with Google (requires a real Firebase ID token
+# minted via GoogleAuthProvider — dev mode returns 401 for this endpoint).
+curl -X POST http://localhost:8080/api/auth/google-signin \
+  -H 'Authorization: Bearer <google-firebase-id-token>'
 ```
 
 In `firebase` mode every request above must additionally carry
@@ -117,7 +140,7 @@ message) populate `fieldErrors` with `{field, message}` entries.
 | `firebase.credentials-path`      | `FIREBASE_CREDENTIALS_PATH`   | (empty)                                  | Absolute path to service-account JSON file.   |
 | `assistant.provider`             | `ASSISTANT_PROVIDER`          | `canned`                                 | `canned` or `gemini`.                         |
 | `assistant.api-key`              | `ASSISTANT_API_KEY`           | (empty)                                  | Required when `assistant.provider=gemini`.    |
-| `assistant.model`                | `ASSISTANT_MODEL`             | `gemini-2.0-flash`                       | Gemini model name.                            |
+| `assistant.model`                | `ASSISTANT_MODEL`             | `gemini-2.5-flash-lite`                  | Gemini model name.                            |
 | `assistant.base-url`             | `ASSISTANT_BASE_URL`          | `https://generativelanguage.googleapis.com` | Override for tests / proxies.              |
 
 ## Assistant (chatbot)
@@ -127,7 +150,7 @@ message) populate `fieldErrors` with `{field, message}` entries.
 - **`canned`** (default) — returns a fixed reply. Used for tests and for
   reviewers who don't want to set up an API key.
 - **`gemini`** — calls Google's Generative Language API
-  (`gemini-2.0-flash` by default). The API key is never logged and is
+  (`gemini-2.5-flash-lite` by default). The API key is never logged and is
   passed via the `x-goog-api-key` header.
 
 If the configured provider fails for any reason — missing key, HTTP
@@ -140,8 +163,9 @@ transparently falls back to the canned reply and tags the response with
 1. Visit <https://aistudio.google.com/apikey> and click **Create API key**.
    When prompted, choose **Create API key in new project** — newly-created
    AI Studio projects are automatically enrolled in the free tier
-   (15 req/min, 1500 req/day on `gemini-2.0-flash`). Existing Google Cloud
-   projects (including Firebase projects) are not.
+   (generous per-minute and per-day limits on `gemini-2.5-flash-lite`).
+   Existing Google Cloud projects (including Firebase projects) are not
+   enrolled and will return HTTP 429 with `limit: 0`.
 2. Export the environment variables and restart the backend:
 
    ```bash

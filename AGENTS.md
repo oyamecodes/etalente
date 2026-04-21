@@ -1,67 +1,60 @@
 # AGENTS.md
 
-Guidance for humans and coding agents working in this repository.
+Repo-specific notes for coding agents. General Spring/Flutter knowledge is assumed;
+only non-obvious things live here. `README.md` and `backend/README.md` cover run/config
+details — don't duplicate them here.
 
-## Repository layout
+## Layout
+
+- `backend/` — Spring Boot 3.5, Java 21, Maven Wrapper. The only thing that currently builds.
+- `frontend/` — empty placeholder; Flutter app not yet scaffolded.
+- Root `Enviro365 - Flutter Technical Assessment.pdf` is the spec. Deviations are listed at the bottom of `backend/README.md`.
+
+## Backend architecture (not obvious from filenames)
+
+- Package root: `com.enviro365.etalente`.
+- Feature-first: `auth/`, `jobs/`, `stats/`, `assistant/`. Each feature internally splits into `api / application / domain / infrastructure` (+ `dto/`). Add new features the same way — do **not** fall back to flat `controller/service/repository`.
+- Cross-cutting lives outside features: `config/` (Spring `@Configuration` + `@ConfigurationProperties`), `security/` (auth filters + principal), `common/error` (global `@RestControllerAdvice` + error envelope), `common/web`, `seed/MockJobData` (hardcoded job list).
+- **No database, no JPA.** Jobs are served from an in-memory repository implementing a domain interface. Don't introduce Spring Data / Flyway / a DB without updating this file and `backend/README.md`.
+- **Lombok** is on the compile-time annotation processor path (see `pom.xml` — required or builds break). It is excluded from the Spring Boot fat jar.
+
+## Security model
+
+- Stateless. Two auth filters gated by `app.auth.mode`:
+  - `firebase` → `FirebaseAuthenticationFilter` verifies `Authorization: Bearer <id-token>` via Firebase Admin SDK.
+  - `dev` (default) → `DevAuthenticationFilter` injects a static `FirebasePrincipal` (`dev-user` / `dev@etalente.local`, `signInProvider="dev"`). Required for tests and reviewers without a Firebase project.
+- Only `/api/**` is protected. `/actuator/health`, `/swagger-ui.html`, `/v3/api-docs/**` are public. Put new protected endpoints under `/api/**`.
+- `FirebasePrincipal.signInProvider` is the Firebase `firebase.sign_in_provider` claim (`google.com`, `password`, `anonymous`, ...). It's extracted from nested token claims in `FirebaseAuthenticationFilter`, not directly exposed by `FirebaseToken`. Provider-gated endpoints (e.g. `POST /api/auth/google-signin`) read it off the principal — note that in `dev` mode the provider is `"dev"`, so such endpoints return 401 under dev auth. Tests override the principal via `spring-security-test`'s `authentication(...)` post-processor (see `AuthControllerTest`).
+- Service-account secrets load from `FIREBASE_CREDENTIALS_JSON` (preferred) or `FIREBASE_CREDENTIALS_PATH`. Never commit either, and never hardcode them in tests.
+
+## Assistant provider
+
+- `POST /api/assistant/message` uses a pluggable `AssistantProvider`. Current impls: `canned` (default, also used by tests) and `gemini` (Google Generative Language API).
+- **Any** exception from a non-canned provider is swallowed and the response is tagged `"source": "fallback"`. When debugging assistant failures, look at backend logs for `Assistant provider '<name>' failed` — the HTTP response alone won't tell you it failed.
+- Adding a provider = one class implementing `AssistantProvider` + wiring in `config/`. Keep the canned fallback behavior.
+
+## Commands (run from `backend/`)
 
 ```
-/
-├── backend/     Spring Boot 3 REST API (Java 21, Maven Wrapper)
-├── frontend/    Flutter 3+ app (added in a later phase)
-├── README.md
-└── AGENTS.md
+./mvnw spring-boot:run                      # dev-mode API on :8080
+./mvnw test                                 # full suite (dev auth, canned assistant)
+./mvnw test -Dtest=JobServiceTest           # single class
+./mvnw test -Dtest=JobServiceTest#filtersByType   # single method
+./mvnw verify                               # build + tests
+./mvnw -q -DskipTests package               # jar without tests
 ```
 
-Each sub-project owns its own `README.md` with run instructions and any
-conventions specific to that stack.
+Tests force `app.auth.mode=dev` and `assistant.provider=canned`; they need no env vars or network.
 
-## Backend conventions
+## Error envelope
 
-- **Package root**: `com.enviro365.etalente`.
-- **Feature-first packaging**: `auth/`, `jobs/`, `stats/`, `assistant/`. Inside
-  each feature, prefer an `api / application / domain / infrastructure`
-  split over flat `controller/service/repository` packages.
-- **DTOs** live in `<feature>/dto/` and are separate from domain models.
-- **Security** is stateless. `app.auth.mode` selects between `firebase`
-  (real ID-token verification) and `dev` (fake principal for reviewers/tests).
-- **No database.** Data is hardcoded in `seed/` and served through an
-  in-memory repository that implements a domain interface. Do not add JPA
-  or a real DB without updating this document first.
-- **No committed secrets.** Firebase service account JSON is loaded from
-  env vars (`FIREBASE_CREDENTIALS_JSON` or `FIREBASE_CREDENTIALS_PATH`).
+All errors use the same JSON shape emitted by `common/error` advice:
+`{timestamp, status, error, message, path, fieldErrors}`. `fieldErrors` is only populated for `@Valid` failures. New exceptions should route through this advice rather than returning ad-hoc bodies.
 
-### Commands (run from `backend/`)
+## Pagination contract
 
-```
-./mvnw clean compile       # compile
-./mvnw spring-boot:run     # run the API on :8080
-./mvnw test                # unit + slice tests
-./mvnw verify              # full build with tests
-./mvnw -q -DskipTests package
-```
-
-Tests are written against `app.auth.mode=dev` so they never need Firebase.
-
-## Frontend conventions
-
-TBD — will be documented when the Flutter app lands.
+`/api/jobs` returns `{content, page, size, total}` with `size` capped at 100. Preserve this envelope — the Flutter client will depend on it.
 
 ## Commit style
 
-- Conventional-ish prefixes: `feat`, `fix`, `chore`, `docs`, `test`, `refactor`.
-- One commit per development phase during initial scaffolding; finer grained
-  afterwards.
-- Never commit secrets, service account JSON, or `.env` files.
-
-## Trade-offs & deviations from the spec
-
-The spec allows a fully mocked backend. Deliberate deviations:
-
-1. `POST /api/auth/login` is replaced by Firebase ID-token verification plus
-   `GET /api/auth/me`. Rationale: a mock login demonstrates nothing about
-   real auth integration, and Firebase was requested for this project.
-2. `app.auth.mode=dev` exists solely for reviewer convenience and local
-   tests. It is not a production posture.
-3. `/api/jobs` supports pagination via `page`/`size` query params and returns
-   a `{content, page, size, total}` envelope. The spec allows client-side
-   filtering; server-side filters are additionally provided.
+Conventional-ish prefixes (`feat`, `fix`, `chore`, `docs`, `test`, `refactor`). Never commit service-account JSON, `.env`, or Firebase keys.

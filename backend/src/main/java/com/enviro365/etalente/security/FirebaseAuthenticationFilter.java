@@ -1,6 +1,7 @@
 package com.enviro365.etalente.security;
 
 import java.io.IOException;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,7 +53,8 @@ public class FirebaseAuthenticationFilter extends OncePerRequestFilter {
                 FirebasePrincipal principal = new FirebasePrincipal(
                         token.getUid(),
                         token.getEmail(),
-                        token.getName());
+                        token.getName(),
+                        extractSignInProvider(token));
                 SecurityContextHolder.getContext()
                         .setAuthentication(new FirebaseAuthenticationToken(principal));
             } catch (FirebaseAuthException e) {
@@ -61,5 +63,24 @@ public class FirebaseAuthenticationFilter extends OncePerRequestFilter {
             }
         }
         filterChain.doFilter(request, response);
+    }
+
+    /**
+     * Pulls {@code firebase.sign_in_provider} out of the verified token's
+     * custom claims. Firebase nests provider info under the {@code "firebase"}
+     * claim (e.g. {@code {"sign_in_provider": "google.com", "identities": {...}}}).
+     * Returns {@code null} if the claim is absent or malformed so callers can
+     * treat "unknown provider" uniformly.
+     */
+    @SuppressWarnings("unchecked")
+    private static String extractSignInProvider(FirebaseToken token) {
+        Object firebaseClaim = token.getClaims().get("firebase");
+        if (firebaseClaim instanceof Map<?, ?> map) {
+            Object provider = ((Map<String, Object>) map).get("sign_in_provider");
+            if (provider instanceof String s && !s.isBlank()) {
+                return s;
+            }
+        }
+        return null;
     }
 }

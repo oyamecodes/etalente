@@ -42,7 +42,7 @@ firebase:
 assistant:
   provider: ${ASSISTANT_PROVIDER:canned}
   api-key: ${ASSISTANT_API_KEY:}
-  model: ${ASSISTANT_MODEL:gemini-2.0-flash}
+  model: ${ASSISTANT_MODEL:gemini-2.5-flash-lite}
   base-url: ${ASSISTANT_BASE_URL:https://generativelanguage.googleapis.com}
   request-timeout: 10s
 

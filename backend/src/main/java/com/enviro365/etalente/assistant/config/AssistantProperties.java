@@ -13,7 +13,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  *                         {@code canned}.
  * @param apiKey           API key for the selected provider. Required for
  *                         {@code gemini}.
- * @param model            model name. Defaults to {@code gemini-2.0-flash}.
+ * @param model            model name. Defaults to {@code gemini-2.5-flash-lite}.
  * @param baseUrl          provider base URL. Overridable for tests.
  * @param requestTimeout   HTTP read timeout for the provider call.
  * @param systemPrompt     short instruction prepended to every user
@@ -33,7 +33,7 @@ public record AssistantProperties(
             provider = "canned";
         }
         if (model == null || model.isBlank()) {
-            model = "gemini-2.0-flash";
+            model = "gemini-2.5-flash-lite";
         }
         if (baseUrl == null || baseUrl.isBlank()) {
             baseUrl = "https://generativelanguage.googleapis.com";

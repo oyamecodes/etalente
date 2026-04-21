@@ -25,7 +25,8 @@ public class DevAuthenticationFilter extends OncePerRequestFilter {
     private final FirebasePrincipal devPrincipal;
 
     public DevAuthenticationFilter(AuthProperties.DevUser devUser) {
-        this.devPrincipal = new FirebasePrincipal(devUser.uid(), devUser.email(), devUser.name());
+        this.devPrincipal = new FirebasePrincipal(
+                devUser.uid(), devUser.email(), devUser.name(), "dev");
     }
 
     @Override
