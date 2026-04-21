@@ -198,6 +198,9 @@ transparently falls back to the canned reply and tags the response with
   `source` propagation.
 - `AssistantControllerTest` — canned reply happy path and `@Valid`-driven
   400s for blank/missing messages.
+- `AuthControllerTest` — MVC slice covering `/api/auth/google-signin`
+  (google-accepted, password-rejected, dev-rejected, missing-provider-rejected)
+  and `/api/auth/me` (provider echoed, dev mode returns `"dev"`).
 - `EtalenteApplicationTests` — context-loads smoke.
 
 All tests run under `app.auth.mode=dev` and `assistant.provider=canned`,

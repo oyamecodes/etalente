@@ -1,0 +1,7 @@
+# Keep Tilt's dep-watcher cheap.
+backend/target/
+frontend/build/
+frontend/.dart_tool/
+*.log
+.idea/
+.vscode/

@@ -46,6 +46,10 @@ details — don't duplicate them here.
 
 Tests force `app.auth.mode=dev` and `assistant.provider=canned`; they need no env vars or network.
 
+## Local orchestration (Tilt)
+
+Root `Tiltfile` runs backend (and optionally Flutter) as `local_resource`s — no Docker, no Kubernetes, so WSL Docker Desktop integration is **not** required. `tilt up -- --frontend` gates the frontend resource so the Tiltfile stays valid before `frontend/` is scaffolded. Flutter device defaults to `emulator-5554`; override with `--flutter-device=<id>`. A `backend-tests` resource is `TRIGGER_MODE_MANUAL` + `auto_init=False` — click to run `./mvnw test`. Backend env vars (`ASSISTANT_API_KEY`, `APP_AUTH_MODE`, `FIREBASE_*`) are inherited from the shell.
+
 ## Error envelope
 
 All errors use the same JSON shape emitted by `common/error` advice:
