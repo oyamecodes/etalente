@@ -47,7 +47,8 @@ class AssistantControllerTest {
                         .content("{\"message\":\"hello\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.reply").isNotEmpty())
-                .andExpect(jsonPath("$.timestamp").isNotEmpty());
+                .andExpect(jsonPath("$.timestamp").isNotEmpty())
+                .andExpect(jsonPath("$.source").value("canned"));
     }
 
     @Test

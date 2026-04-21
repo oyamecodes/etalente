@@ -60,7 +60,7 @@ token from `firebase_auth` after the user signs in.
 | GET    | `/api/jobs`                | yes  | Filters: `type`, `experience`, `location`, `search`. Paging: `page` (default `0`), `size` (default `20`, max `100`). Returns `{content, page, size, total}`. |
 | GET    | `/api/jobs/{id}`           | yes  | Full job details including `description` and `skills`. 404 if unknown. |
 | GET    | `/api/stats`               | yes  | Dashboard summary: `{activePosts, newApplicants, interviewsToday}`. |
-| POST   | `/api/assistant/message`   | yes  | Body `{"message": "..."}` (non-blank, max 2000 chars). Returns `{reply, timestamp}` with a canned reply. |
+| POST   | `/api/assistant/message`   | yes  | Body `{"message": "..."}` (non-blank, max 2000 chars). Returns `{reply, timestamp, source}`. `source` is `canned`, `gemini`, or `fallback` (see Assistant section below). |
 | GET    | `/actuator/health`         | no   | Liveness probe.                                 |
 | GET    | `/swagger-ui.html`         | no   | Interactive API docs (OpenAPI 3).               |
 
@@ -115,6 +115,52 @@ message) populate `fieldErrors` with `{field, message}` entries.
 | `firebase.project-id`            | `FIREBASE_PROJECT_ID`         | (empty)                                  | Required when `app.auth.mode=firebase`.       |
 | `firebase.credentials-json`      | `FIREBASE_CREDENTIALS_JSON`   | (empty)                                  | Raw service-account JSON. Takes precedence.   |
 | `firebase.credentials-path`      | `FIREBASE_CREDENTIALS_PATH`   | (empty)                                  | Absolute path to service-account JSON file.   |
+| `assistant.provider`             | `ASSISTANT_PROVIDER`          | `canned`                                 | `canned` or `gemini`.                         |
+| `assistant.api-key`              | `ASSISTANT_API_KEY`           | (empty)                                  | Required when `assistant.provider=gemini`.    |
+| `assistant.model`                | `ASSISTANT_MODEL`             | `gemini-2.0-flash`                       | Gemini model name.                            |
+| `assistant.base-url`             | `ASSISTANT_BASE_URL`          | `https://generativelanguage.googleapis.com` | Override for tests / proxies.              |
+
+## Assistant (chatbot)
+
+`POST /api/assistant/message` supports two providers:
+
+- **`canned`** (default) — returns a fixed reply. Used for tests and for
+  reviewers who don't want to set up an API key.
+- **`gemini`** — calls Google's Generative Language API
+  (`gemini-2.0-flash` by default). The API key is never logged and is
+  passed via the `x-goog-api-key` header.
+
+If the configured provider fails for any reason — missing key, HTTP
+error, rate limit, malformed response, network timeout — the service
+transparently falls back to the canned reply and tags the response with
+`"source": "fallback"` so the client can surface the degraded state.
+
+### Wiring Gemini
+
+1. Visit <https://aistudio.google.com/apikey> and click **Create API key**.
+   When prompted, choose **Create API key in new project** — newly-created
+   AI Studio projects are automatically enrolled in the free tier
+   (15 req/min, 1500 req/day on `gemini-2.0-flash`). Existing Google Cloud
+   projects (including Firebase projects) are not.
+2. Export the environment variables and restart the backend:
+
+   ```bash
+   export ASSISTANT_PROVIDER=gemini
+   export ASSISTANT_API_KEY=AIza...
+   ./mvnw spring-boot:run
+   ```
+
+3. Verify:
+
+   ```bash
+   curl -X POST http://localhost:8080/api/assistant/message \
+     -H 'Content-Type: application/json' \
+     -d '{"message":"Summarise the Senior Software Engineer role in one sentence."}'
+   ```
+
+   A live reply has `"source": "gemini"`. A `"source": "fallback"` means
+   the call was attempted and failed — check the backend logs for the
+   reason (look for `Assistant provider 'gemini' failed`).
 
 ## Testing
 
@@ -124,14 +170,16 @@ message) populate `fieldErrors` with `{field, message}` entries.
   the real in-memory repository.
 - `JobControllerTest` — MVC slice (`@SpringBootTest` + `MockMvc`) covering
   list pagination, filters, details, 404, and invalid `type` handling.
+- `AssistantServiceTest` — provider selection, exception fallback, and
+  `source` propagation.
 - `AssistantControllerTest` — canned reply happy path and `@Valid`-driven
   400s for blank/missing messages.
 - `EtalenteApplicationTests` — context-loads smoke.
 
-All tests run under `app.auth.mode=dev`, so no Firebase credentials are
-required to execute the suite.
+All tests run under `app.auth.mode=dev` and `assistant.provider=canned`,
+so no external credentials are required to execute the suite.
 
-
+## Assumptions & trade-offs
 
 1. **Real Firebase auth over mock login.** The spec allowed a mock
    `POST /api/auth/login`. Replaced with Firebase ID-token verification plus
@@ -152,8 +200,11 @@ required to execute the suite.
 6. **Pagination envelope** on `/api/jobs` returns
    `{content, page, size, total}`. Client-side filtering is still fine;
    server-side filters are additionally provided.
-7. **Assistant** returns a single canned reply for now. Keyword routing
-   or actual LLM integration is a trivial swap inside `AssistantService`.
+7. **Assistant is provider-pluggable** with a canned fallback. The
+   default `canned` provider keeps reviewers productive without any API
+   keys; `gemini` wires in a real LLM. Swapping to another provider
+   (OpenAI, Groq, Ollama, etc.) is a single class implementing
+   `AssistantProvider`.
 
 ## What I'd improve with more time
 

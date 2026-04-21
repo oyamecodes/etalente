@@ -34,6 +34,19 @@ firebase:
   credentials-path: ${FIREBASE_CREDENTIALS_PATH:}
 
 # -----------------------------------------------------------------------------
+# Assistant (chatbot) configuration
+# -----------------------------------------------------------------------------
+# 'canned' (default) returns a fixed reply — good for reviewers and tests.
+# 'gemini' calls Google's Generative Language API. Requires ASSISTANT_API_KEY.
+# Any failure from a non-canned provider transparently falls back to canned.
+assistant:
+  provider: ${ASSISTANT_PROVIDER:canned}
+  api-key: ${ASSISTANT_API_KEY:}
+  model: ${ASSISTANT_MODEL:gemini-2.0-flash}
+  base-url: ${ASSISTANT_BASE_URL:https://generativelanguage.googleapis.com}
+  request-timeout: 10s
+
+# -----------------------------------------------------------------------------
 # Actuator — only health is exposed.
 # -----------------------------------------------------------------------------
 management:
