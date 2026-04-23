@@ -25,11 +25,13 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ApiError> handleNotFound(ResourceNotFoundException ex, WebRequest request) {
+        log.warn("404 Not Found at {}: {}", pathOf(request), ex.getMessage());
         return build(HttpStatus.NOT_FOUND, ex.getMessage(), request);
     }
 
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<ApiError> handleUnknownRoute(NoResourceFoundException ex, WebRequest request) {
+        log.warn("404 Unknown route at {}", pathOf(request));
         return build(HttpStatus.NOT_FOUND, "Resource not found", request);
     }
 
@@ -39,6 +41,7 @@ public class GlobalExceptionHandler {
         List<ApiError.FieldIssue> issues = ex.getBindingResult().getFieldErrors().stream()
                 .map(fe -> new ApiError.FieldIssue(fe.getField(), fe.getDefaultMessage()))
                 .toList();
+        log.warn("400 Validation failed at {}: {}", pathOf(request), issues);
         ApiError body = ApiError.of(
                 HttpStatus.BAD_REQUEST.value(),
                 HttpStatus.BAD_REQUEST.getReasonPhrase(),
@@ -50,16 +53,19 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiError> handleBadRequest(IllegalArgumentException ex, WebRequest request) {
+        log.warn("400 Bad Request at {}: {}", pathOf(request), ex.getMessage());
         return build(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
     }
 
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<ApiError> handleAuthn(AuthenticationException ex, WebRequest request) {
+        log.warn("401 Authentication required at {}: {}", pathOf(request), ex.getMessage());
         return build(HttpStatus.UNAUTHORIZED, "Authentication required", request);
     }
 
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ApiError> handleAuthz(AccessDeniedException ex, WebRequest request) {
+        log.warn("403 Access denied at {}: {}", pathOf(request), ex.getMessage());
         return build(HttpStatus.FORBIDDEN, "Access denied", request);
     }
 

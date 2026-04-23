@@ -10,6 +10,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
 import org.springframework.security.web.FilterChainProxy;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
@@ -102,5 +103,137 @@ class AuthControllerTest {
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.message")
                         .value(org.hamcrest.Matchers.containsString("unknown")));
+    }
+
+    @Test
+    void loginReturnsMockTokenForAnyValidCredentials() throws Exception {
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"talent@etalente.co.za\",\"password\":\"secret123\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").value("mock-jwt-token"))
+                .andExpect(jsonPath("$.user.id").value("1"))
+                .andExpect(jsonPath("$.user.email").value("talent@etalente.co.za"))
+                .andExpect(jsonPath("$.user.name").value("Recruitment Admin"));
+    }
+
+    @Test
+    void loginIsPublic_noAuthHeaderRequired() throws Exception {
+        // Proves the security chain permits /api/auth/login without a principal.
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"a@b.co\",\"password\":\"pw-1234\"}"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void loginRejectsInvalidEmailWith400() throws Exception {
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"not-an-email\",\"password\":\"secret123\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[?(@.field=='email')]").exists());
+    }
+
+    @Test
+    void loginRejectsShortPasswordWith400() throws Exception {
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"a@b.co\",\"password\":\"123\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[?(@.field=='password')]").exists());
+    }
+
+    @Test
+    void signUpReturnsMockTokenAndEchoesSubmittedNameAndEmail() throws Exception {
+        mockMvc.perform(post("/api/auth/signup")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Jane Doe\","
+                                + "\"email\":\"jane@etalente.co.za\","
+                                + "\"password\":\"secret123\","
+                                + "\"confirmPassword\":\"secret123\","
+                                + "\"acceptTerms\":true}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").value("mock-jwt-token"))
+                .andExpect(jsonPath("$.user.id").value("1"))
+                .andExpect(jsonPath("$.user.email").value("jane@etalente.co.za"))
+                .andExpect(jsonPath("$.user.name").value("Jane Doe"));
+    }
+
+    @Test
+    void signUpIsPublic_noAuthHeaderRequired() throws Exception {
+        mockMvc.perform(post("/api/auth/signup")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"A B\","
+                                + "\"email\":\"a@b.co\","
+                                + "\"password\":\"pw-1234\","
+                                + "\"confirmPassword\":\"pw-1234\","
+                                + "\"acceptTerms\":true}"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void signUpRejectsBlankNameWith400() throws Exception {
+        mockMvc.perform(post("/api/auth/signup")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"\","
+                                + "\"email\":\"a@b.co\","
+                                + "\"password\":\"pw-1234\","
+                                + "\"confirmPassword\":\"pw-1234\","
+                                + "\"acceptTerms\":true}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[?(@.field=='name')]").exists());
+    }
+
+    @Test
+    void signUpRejectsInvalidEmailWith400() throws Exception {
+        mockMvc.perform(post("/api/auth/signup")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Jane\","
+                                + "\"email\":\"not-an-email\","
+                                + "\"password\":\"pw-1234\","
+                                + "\"confirmPassword\":\"pw-1234\","
+                                + "\"acceptTerms\":true}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[?(@.field=='email')]").exists());
+    }
+
+    @Test
+    void signUpRejectsShortPasswordWith400() throws Exception {
+        mockMvc.perform(post("/api/auth/signup")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Jane\","
+                                + "\"email\":\"a@b.co\","
+                                + "\"password\":\"123\","
+                                + "\"confirmPassword\":\"123\","
+                                + "\"acceptTerms\":true}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[?(@.field=='password')]").exists());
+    }
+
+    @Test
+    void signUpRejectsMismatchedConfirmPasswordWith400() throws Exception {
+        mockMvc.perform(post("/api/auth/signup")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Jane\","
+                                + "\"email\":\"a@b.co\","
+                                + "\"password\":\"secret123\","
+                                + "\"confirmPassword\":\"secret999\","
+                                + "\"acceptTerms\":true}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[?(@.field=='confirmPassword')]").exists());
+    }
+
+    @Test
+    void signUpRejectsUnacceptedTermsWith400() throws Exception {
+        mockMvc.perform(post("/api/auth/signup")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Jane\","
+                                + "\"email\":\"a@b.co\","
+                                + "\"password\":\"secret123\","
+                                + "\"confirmPassword\":\"secret123\","
+                                + "\"acceptTerms\":false}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors[?(@.field=='acceptTerms')]").exists());
     }
 }
