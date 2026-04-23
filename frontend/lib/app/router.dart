@@ -1,14 +1,16 @@
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/auth/presentation/sign_in_page.dart';
 import '../features/auth/presentation/sign_up_page.dart';
+import '../features/jobs/presentation/job_board_page.dart';
 
 /// Top-level router.
 ///
 /// Navigation is intentionally simple: `/` is the sign-in screen,
-/// `/sign-up` is the create-account screen, and `/jobs` is a placeholder
-/// post-login landing page until the full job board is built.
+/// `/sign-up` is the create-account screen, and `/jobs` is the
+/// post-login landing page. Auth guarding is left to the pages
+/// themselves (the placeholder allows direct visits so reviewers can
+/// poke around without logging in every reload).
 GoRouter buildRouter({String initialLocation = '/'}) {
   return GoRouter(
     initialLocation: initialLocation,
@@ -26,10 +28,7 @@ GoRouter buildRouter({String initialLocation = '/'}) {
       GoRoute(
         path: '/jobs',
         name: 'jobBoard',
-        builder: (_, _) => Scaffold(
-          appBar: AppBar(title: const Text('Job Board')),
-          body: const Center(child: Text('Coming soon')),
-        ),
+        builder: (_, _) => const JobBoardPage(),
       ),
     ],
   );

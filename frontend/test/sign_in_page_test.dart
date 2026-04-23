@@ -2,10 +2,15 @@ import 'package:etalente/app/router.dart';
 import 'package:etalente/features/auth/application/auth_controller.dart';
 import 'package:etalente/features/auth/data/auth_repository.dart';
 import 'package:etalente/features/auth/domain/auth_session.dart';
+import 'package:etalente/features/assistant/application/assistant_controller.dart';
+import 'package:etalente/features/jobs/application/job_board_controller.dart';
+import 'package:etalente/features/stats/application/stats_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+
+import 'test_helpers/fake_dashboard_repos.dart';
 
 class _FakeAuthRepository extends Mock implements AuthRepository {}
 
@@ -14,6 +19,10 @@ Future<void> _pumpSignIn(WidgetTester tester, AuthRepository repo) async {
     ProviderScope(
       overrides: [
         authRepositoryProvider.overrideWithValue(repo),
+        jobRepositoryProvider.overrideWithValue(FakeJobRepository()),
+        statsRepositoryProvider.overrideWithValue(FakeStatsRepository()),
+        assistantRepositoryProvider
+            .overrideWithValue(FakeAssistantRepository()),
       ],
       child: MaterialApp.router(routerConfig: buildRouter()),
     ),
