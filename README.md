@@ -102,6 +102,10 @@ Captured in detail in `backend/README.md`. Highlights:
   `app.auth.mode=firebase`.
 - Feature-first package layout (`jobs/`, `stats/`, `assistant/`, `auth/`) with
   internal `api / application / domain / infrastructure` separation.
+- Read-through caching (`@EnableCaching` + in-memory
+  `ConcurrentMapCacheManager`) on `JobService.list` / `findById` and
+  `StatsService.current()` so repeated dashboard loads don't re-walk
+  the mock repository. Swap in Caffeine/Redis for production.
 
 ## Status
 
@@ -131,3 +135,7 @@ Captured in detail in `backend/README.md`. Highlights:
 - **End-to-end tests**: a Patrol or `integration_test` suite driving
   sign-in → job board → details → assistant would complement the
   current widget tests.
+- **Dark mode**: the palette is currently pinned to the supplied mocks
+  via hard-coded `AppColors` tokens, so a proper dark theme means
+  redefining every token per-brightness and routing widgets through a
+  `ThemeExtension`. Left out to avoid regressing mock fidelity.

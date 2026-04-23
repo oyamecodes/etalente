@@ -16,6 +16,7 @@ details — don't duplicate them here.
 - Feature-first: `auth/`, `jobs/`, `stats/`, `assistant/`. Each feature internally splits into `api / application / domain / infrastructure` (+ `dto/`). Add new features the same way — do **not** fall back to flat `controller/service/repository`.
 - Cross-cutting lives outside features: `config/` (Spring `@Configuration` + `@ConfigurationProperties`), `security/` (auth filters + principal), `common/error` (global `@RestControllerAdvice` + error envelope), `common/web`, `seed/MockJobData` (hardcoded job list).
 - **No database, no JPA.** Jobs are served from an in-memory repository implementing a domain interface. Don't introduce Spring Data / Flyway / a DB without updating this file and `backend/README.md`.
+- **Caching.** `config/CachingConfig` enables `@EnableCaching` with a `ConcurrentMapCacheManager` over three named caches (`jobsById`, `jobsList`, `stats`). `JobService.list(JobQuery)` / `JobService.findById(String)` and `StatsService.current()` are `@Cacheable`. There is no eviction wired — the mock data is static; when write support lands, add `@CacheEvict` on the mutating methods. Note that `@Cacheable` only fires through the Spring proxy, so `JobServiceTest` (which `new`s the service directly) deliberately bypasses the cache.
 - **Lombok** is on the compile-time annotation processor path (see `pom.xml` — required or builds break). It is excluded from the Spring Boot fat jar.
 
 ## Security model

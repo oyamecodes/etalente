@@ -4,11 +4,13 @@ import java.util.List;
 import java.util.Locale;
 import java.util.function.Predicate;
 
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import com.enviro365.etalente.common.error.ResourceNotFoundException;
 import com.enviro365.etalente.common.web.PageResponse;
+import com.enviro365.etalente.config.CachingConfig;
 import com.enviro365.etalente.jobs.domain.EmploymentType;
 import com.enviro365.etalente.jobs.domain.Job;
 import com.enviro365.etalente.jobs.domain.JobRepository;
@@ -30,6 +32,12 @@ public class JobService {
         this.repository = repository;
     }
 
+    /**
+     * Paged + filtered job list. Cached on the full {@link JobQuery}
+     * record so different filter combinations each get their own entry;
+     * invalidated manually when the repository grows write support.
+     */
+    @Cacheable(CachingConfig.JOBS_LIST)
     public PageResponse<JobDto> list(JobQuery query) {
         Predicate<Job> filter = buildFilter(query);
 
@@ -46,6 +54,7 @@ public class JobService {
         return PageResponse.of(pageContent, query.page(), query.size(), matched.size());
     }
 
+    @Cacheable(CachingConfig.JOBS_BY_ID)
     public JobDetailDto findById(String id) {
         return repository.findById(id)
                 .map(JobMapper::toDetailDto)
