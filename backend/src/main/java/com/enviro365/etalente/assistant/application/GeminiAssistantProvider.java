@@ -47,14 +47,21 @@ public class GeminiAssistantProvider implements AssistantProvider {
     }
 
     @Override
-    public ProviderReply reply(String userMessage) {
+    public ProviderReply reply(String userMessage, String systemContext) {
         if (properties.apiKey() == null || properties.apiKey().isBlank()) {
             throw new IllegalStateException("ASSISTANT_API_KEY is not configured");
         }
 
+        // Prefer the resolved context (static scope + live site state).
+        // Fall back to the static prompt if the caller passed nothing so
+        // the provider still refuses to run without any guardrails.
+        String systemInstruction = (systemContext == null || systemContext.isBlank())
+                ? properties.systemPrompt()
+                : systemContext;
+
         Map<String, Object> payload = Map.of(
                 "system_instruction", Map.of(
-                        "parts", List.of(Map.of("text", properties.systemPrompt()))),
+                        "parts", List.of(Map.of("text", systemInstruction))),
                 "contents", List.of(Map.of(
                         "role", "user",
                         "parts", List.of(Map.of("text", userMessage)))),

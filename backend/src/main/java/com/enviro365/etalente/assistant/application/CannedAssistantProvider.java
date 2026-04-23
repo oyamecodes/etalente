@@ -5,7 +5,7 @@ import org.springframework.stereotype.Component;
 /**
  * Fallback provider. Always available and always returns the same reply —
  * used when no LLM is configured, when the LLM call fails, or when running
- * tests.
+ * tests. Ignores {@code systemContext}.
  */
 @Component
 public class CannedAssistantProvider implements AssistantProvider {
@@ -13,9 +13,8 @@ public class CannedAssistantProvider implements AssistantProvider {
     public static final String SOURCE = "canned";
 
     private static final String CANNED_REPLY =
-            "Thanks for your message! I'm the eTalente assistant. "
-                    + "I can help you explore open roles, summarise job details, "
-                    + "and answer questions about the hiring process.";
+            "Hello! I'm your eTalente Assistant. How can I help you manage "
+                    + "your recruitment workflow or find talent today?";
 
     @Override
     public String name() {
@@ -23,7 +22,7 @@ public class CannedAssistantProvider implements AssistantProvider {
     }
 
     @Override
-    public ProviderReply reply(String userMessage) {
+    public ProviderReply reply(String userMessage, String systemContext) {
         return new ProviderReply(CANNED_REPLY, SOURCE);
     }
 }

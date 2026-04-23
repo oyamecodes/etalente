@@ -22,11 +22,17 @@ class AssistantServiceTest {
     private static final AssistantMessageRequest MESSAGE =
             new AssistantMessageRequest("hello");
 
+    /** Stub context builder — the orchestration logic doesn't care about the
+     *  actual context string, only that it's threaded through to providers. */
+    private static final AssistantContextBuilder CONTEXT = new AssistantContextBuilder(null, null, null) {
+        @Override public String build() { return "TEST_CONTEXT"; }
+    };
+
     @Test
     void returnsCannedReplyWhenProviderIsCanned() {
         CannedAssistantProvider canned = new CannedAssistantProvider();
         AssistantService service = new AssistantService(
-                properties("canned", null), List.of(canned), canned);
+                properties("canned", null), List.of(canned), canned, CONTEXT);
 
         AssistantMessageResponse response = service.reply(MESSAGE);
 
@@ -40,7 +46,7 @@ class AssistantServiceTest {
         CannedAssistantProvider canned = new CannedAssistantProvider();
         AssistantProvider stub = new StubProvider("gemini", "Live LLM answer.");
         AssistantService service = new AssistantService(
-                properties("gemini", "key"), List.of(stub, canned), canned);
+                properties("gemini", "key"), List.of(stub, canned), canned, CONTEXT);
 
         AssistantMessageResponse response = service.reply(MESSAGE);
 
@@ -53,12 +59,12 @@ class AssistantServiceTest {
         CannedAssistantProvider canned = new CannedAssistantProvider();
         AssistantProvider broken = new AssistantProvider() {
             @Override public String name() { return "gemini"; }
-            @Override public ProviderReply reply(String userMessage) {
+            @Override public ProviderReply reply(String userMessage, String systemContext) {
                 throw new IllegalStateException("boom");
             }
         };
         AssistantService service = new AssistantService(
-                properties("gemini", "key"), List.of(broken, canned), canned);
+                properties("gemini", "key"), List.of(broken, canned), canned, CONTEXT);
 
         AssistantMessageResponse response = service.reply(MESSAGE);
 
@@ -72,7 +78,7 @@ class AssistantServiceTest {
     void unknownProviderNameFallsBackToCanned() {
         CannedAssistantProvider canned = new CannedAssistantProvider();
         AssistantService service = new AssistantService(
-                properties("nonsense", null), List.of(canned), canned);
+                properties("nonsense", null), List.of(canned), canned, CONTEXT);
 
         AssistantMessageResponse response = service.reply(MESSAGE);
 
@@ -91,7 +97,7 @@ class AssistantServiceTest {
 
     private record StubProvider(String name, String text) implements AssistantProvider {
         @Override
-        public ProviderReply reply(String userMessage) {
+        public ProviderReply reply(String userMessage, String systemContext) {
             return new ProviderReply(text, name);
         }
     }

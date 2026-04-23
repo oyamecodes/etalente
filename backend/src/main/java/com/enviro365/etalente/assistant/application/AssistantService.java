@@ -29,20 +29,24 @@ public class AssistantService {
     private final AssistantProperties properties;
     private final List<AssistantProvider> providers;
     private final CannedAssistantProvider canned;
+    private final AssistantContextBuilder contextBuilder;
 
     public AssistantService(AssistantProperties properties,
                             List<AssistantProvider> providers,
-                            CannedAssistantProvider canned) {
+                            CannedAssistantProvider canned,
+                            AssistantContextBuilder contextBuilder) {
         this.properties = properties;
         this.providers = providers;
         this.canned = canned;
+        this.contextBuilder = contextBuilder;
     }
 
     public AssistantMessageResponse reply(AssistantMessageRequest request) {
         AssistantProvider primary = selectPrimary();
+        String context = contextBuilder.build();
         if (primary != canned) {
             try {
-                ProviderReply providerReply = primary.reply(request.message());
+                ProviderReply providerReply = primary.reply(request.message(), context);
                 return new AssistantMessageResponse(
                         providerReply.text(), Instant.now(), providerReply.source());
             } catch (RuntimeException ex) {
@@ -50,7 +54,7 @@ public class AssistantService {
                         primary.name(), ex.getMessage());
             }
         }
-        ProviderReply fallback = canned.reply(request.message());
+        ProviderReply fallback = canned.reply(request.message(), context);
         String source = (primary == canned) ? fallback.source() : "fallback";
         return new AssistantMessageResponse(fallback.text(), Instant.now(), source);
     }

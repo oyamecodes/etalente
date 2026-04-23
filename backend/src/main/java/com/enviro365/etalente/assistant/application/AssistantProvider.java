@@ -13,6 +13,13 @@ public interface AssistantProvider {
     /** Short identifier used in {@link ProviderReply#source()}. */
     String name();
 
-    /** Produce a reply for the given user message. */
-    ProviderReply reply(String userMessage);
+    /**
+     * Produce a reply for the given user message.
+     *
+     * @param userMessage   the raw user prompt
+     * @param systemContext the resolved system prompt (static scope
+     *                      constraints + dynamic site state). Implementations
+     *                      may ignore it (e.g. the canned fallback).
+     */
+    ProviderReply reply(String userMessage, String systemContext);
 }
