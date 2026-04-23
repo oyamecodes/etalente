@@ -22,15 +22,18 @@ class JobBoardPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final jobs = ref.watch(jobBoardControllerProvider);
+    final assistantOpen = ref.watch(assistantOpenProvider);
 
     return DashboardShell(
       active: NavItem.jobPosts,
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => openAssistantSheet(context),
-        backgroundColor: AppColors.accentYellow,
-        foregroundColor: AppColors.onSurface,
-        child: const Icon(Icons.chat_bubble_outline),
-      ),
+      floatingActionButton: assistantOpen
+          ? null
+          : FloatingActionButton(
+              onPressed: () => openAssistantSheet(context),
+              backgroundColor: AppColors.accentYellow,
+              foregroundColor: AppColors.onSurface,
+              child: const Icon(Icons.chat_bubble_outline),
+            ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [

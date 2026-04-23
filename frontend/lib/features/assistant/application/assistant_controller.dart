@@ -37,7 +37,8 @@ class AssistantController extends AsyncNotifier<List<ChatMessage>> {
     return const <ChatMessage>[
       ChatMessage(
         text:
-            'Hi! Need help managing your timesheets or job posts today?',
+            "Hello! I'm your eTalente Assistant. How can I help you manage "
+            "your recruitment workflow or find talent today?",
         fromUser: false,
       ),
     ];
