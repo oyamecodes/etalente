@@ -63,10 +63,27 @@ local_resource(
 # ---------------------------------------------------------------------------
 # Defined now behind a flag so the Tiltfile remains valid before the Flutter
 # app is scaffolded. Once `frontend/pubspec.yaml` exists, flip the flag on.
+#
+# `--flutter-device=web-server` is the WSL-friendly choice: Flutter builds
+# and serves the web bundle on http://localhost:3000, and you open it in
+# your host browser (Chrome/Edge on Windows) yourself. `-d chrome` does not
+# work under WSL because Windows Chrome cannot reach Flutter's debug port
+# bound inside the WSL VM.
 if run_frontend:
+    if flutter_device == "web-server":
+        flutter_cmd = (
+            "flutter run -d web-server " +
+            "--web-hostname=0.0.0.0 --web-port=3000 " +
+            "--dart-define=API_BASE_URL=http://localhost:8080"
+        )
+        flutter_links = [link("http://localhost:3000", "App")]
+    else:
+        flutter_cmd = "flutter run -d {}".format(flutter_device)
+        flutter_links = []
+
     local_resource(
         name = "frontend",
-        serve_cmd = "flutter run -d {}".format(flutter_device),
+        serve_cmd = flutter_cmd,
         serve_dir = "frontend",
         deps = [
             "frontend/lib",
@@ -78,4 +95,5 @@ if run_frontend:
         ],
         resource_deps = ["backend"],
         labels = ["app"],
+        links = flutter_links,
     )
