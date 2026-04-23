@@ -6,8 +6,8 @@ details — don't duplicate them here.
 
 ## Layout
 
-- `backend/` — Spring Boot 3.5, Java 21, Maven Wrapper. The only thing that currently builds.
-- `frontend/` — empty placeholder; Flutter app not yet scaffolded.
+- `backend/` — Spring Boot 3.5, Java 21, Maven Wrapper.
+- `frontend/` — Flutter app (sign-in, sign-up, Job Board dashboard). Riverpod + `go_router`, feature-first layout mirroring the backend.
 - Root `Enviro365 - Flutter Technical Assessment.pdf` is the spec. Deviations are listed at the bottom of `backend/README.md`.
 
 ## Backend architecture (not obvious from filenames)
@@ -23,7 +23,7 @@ details — don't duplicate them here.
 - Stateless. Two auth filters gated by `app.auth.mode`:
   - `firebase` → `FirebaseAuthenticationFilter` verifies `Authorization: Bearer <id-token>` via Firebase Admin SDK.
   - `dev` (default) → `DevAuthenticationFilter` injects a static `FirebasePrincipal` (`dev-user` / `dev@etalente.local`, `signInProvider="dev"`). Required for tests and reviewers without a Firebase project.
-- Only `/api/**` is protected. `/actuator/health`, `/swagger-ui.html`, `/v3/api-docs/**` are public. Put new protected endpoints under `/api/**`.
+- Only `/api/**` is protected. `/actuator/health`, `/swagger-ui.html`, `/v3/api-docs/**` are public. `POST /api/auth/login` and `POST /api/auth/signup` are also explicitly permitted (public mocks per the spec — always succeed, return a static token and user). Put new protected endpoints under `/api/**`.
 - `FirebasePrincipal.signInProvider` is the Firebase `firebase.sign_in_provider` claim (`google.com`, `password`, `anonymous`, ...). It's extracted from nested token claims in `FirebaseAuthenticationFilter`, not directly exposed by `FirebaseToken`. Provider-gated endpoints (e.g. `POST /api/auth/google-signin`) read it off the principal — note that in `dev` mode the provider is `"dev"`, so such endpoints return 401 under dev auth. Tests override the principal via `spring-security-test`'s `authentication(...)` post-processor (see `AuthControllerTest`).
 - Service-account secrets load from `FIREBASE_CREDENTIALS_JSON` (preferred) or `FIREBASE_CREDENTIALS_PATH`. Never commit either, and never hardcode them in tests.
 
@@ -58,6 +58,19 @@ All errors use the same JSON shape emitted by `common/error` advice:
 ## Pagination contract
 
 `/api/jobs` returns `{content, page, size, total}` with `size` capped at 100. Preserve this envelope — the Flutter client will depend on it.
+
+## Frontend architecture (not obvious from filenames)
+
+- Feature-first under `lib/`: `app/` (theme, router, `App` widget), `core/api/` (`ApiClient` + typed `ApiException`), `features/<feature>/{data,domain,application,presentation/widgets}`, `shared/widgets/`. Mirror this layout for new features — do **not** collapse into a flat `screens/` + `services/` tree.
+- State: **Riverpod** (`flutter_riverpod`). Controllers are `AsyncNotifier`s in `application/`; repositories in `data/` are plain classes exposed via `Provider`s and overridden in tests with `ProviderScope.overrides`. Routing: **`go_router`** built in `app/router.dart` — navigate with `context.go('/path')`, not `Navigator.push`.
+- API base URL is resolved at build time via `--dart-define=API_BASE_URL=...`. Defaults: `http://10.0.2.2:8080` on Android (emulator → host loopback), `http://localhost:8080` elsewhere. Override for physical devices / deployed backends.
+- Sign-in talks to `POST /api/auth/login` (public mock). The returned token is held in memory only (no secure storage yet) — see `AuthController`. Post-login navigation goes to `/jobs` (placeholder page).
+- Sign-up (`/sign-up`) talks to `POST /api/auth/signup` (public mock; always succeeds, echoes name/email). Visual design intentionally differs from sign-in — it matches the live [etalente.co.za/sign-up](https://etalente.co.za/sign-up) site (outlined floating-label fields, Talent/Employer segmented toggle, dark-navy CTA) rather than the PDF mock used for sign-in. The UI collects `name/email/password/confirmPassword`; `acceptTerms` is sent `true` implicitly by clicking Create Account (mirrors the live site). Extra fields present on the live site screenshot (disability, contact number, alt number, username) are intentionally omitted.
+- **Job Board** (`/jobs`) is the post-auth landing page and matches `job board.jpeg` at the repo root. The layout is owned by `shared/widgets/dashboard_shell.dart` — adaptive three-region shell (`AppSideNav` + body + right rail), with breakpoints at 1100 (wide), 700 (medium, right-rail stacks below) and narrower (hamburger Drawer, single-column). `JobBoardPage` watches `jobBoardControllerProvider` (fetches `GET /api/jobs?size=100`), `FilterPills` mutates a `StateProvider<JobBoardFilters>` which re-triggers the controller via `ref.watch`. Right rail: `QuickStatsCard` hits `/api/stats`; `ChatbotAssistantCard` + chat FAB share `openAssistantSheet()` which drives `AssistantController` against `/api/assistant/message`; `FeaturedTalentCard` is intentionally static (no backend endpoint). Sidebar nav items other than Job Posts are wired to a "coming soon" snackbar; Logout clears the in-memory session and routes to `/`.
+- Widget tests covering `/jobs` must override `jobRepositoryProvider`, `statsRepositoryProvider` *and* `assistantRepositoryProvider` — the shared fakes live in `test/test_helpers/fake_dashboard_repos.dart`. `buildRouter({initialLocation: '/jobs'})` lets tests land directly on the board without running through sign-in.
+- Logo mark, background grid, and decorative graphics are `CustomPainter`s, not SVG/raster assets — keeps `pubspec.yaml` asset-free.
+- Widget tests wrap the app in `MaterialApp.router(routerConfig: buildRouter())` inside a `ProviderScope` with the repo overridden. Wrapping a page in `MaterialApp(home: ...)` will blow up as soon as the page calls `context.go(...)` ("No GoRouter found in context").
+- Commands (run from `frontend/`): `flutter pub get`, `flutter analyze`, `flutter test`, `flutter run -d chrome`, `flutter run -d <android-device-id>`.
 
 ## Commit style
 

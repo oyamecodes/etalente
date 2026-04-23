@@ -5,19 +5,23 @@ Simplified recruitment portal built for the Enviro365 Flutter Technical Assessme
 Monorepo containing:
 
 - **`backend/`** — Spring Boot 3 REST API (Java 21, Maven).
-- **`frontend/`** — Flutter 3+ application (added in a later phase).
+- **`frontend/`** — Flutter 3+ application (sign-in screen + job board placeholder).
 
 ## Architecture at a glance
 
-- **Auth**: Firebase Authentication (Email/Password and Google). The Flutter
-  app signs the user in with Firebase and attaches the resulting ID token as
-  `Authorization: Bearer <token>` on every API call. The backend verifies the
-  token with the Firebase Admin SDK and additionally exposes
-  `POST /api/auth/google-signin` to assert a token was minted by Google.
+- **Auth**: Two paths coexist.
+  - `POST /api/auth/login` — public mock login (email + password) used by
+    the Flutter sign-in screen. Always succeeds; returns a static token
+    and user. Keeps reviewers productive without a Firebase project.
+  - Firebase ID-token verification for the rest of `/api/**`. The Flutter
+    app (post-integration) signs the user in with Firebase and attaches
+    the ID token as `Authorization: Bearer <token>`; the backend verifies
+    it with the Firebase Admin SDK. `POST /api/auth/google-signin`
+    additionally asserts the token was minted via Google.
 - **Backend**: stateless REST API. Data is in-memory (no database required per
   the spec) behind a repository interface so it can be swapped for JPA later.
-- **Frontend**: Flutter, state management and architecture TBD in a later
-  phase.
+- **Frontend**: Flutter, Riverpod for state, `go_router` for routing,
+  feature-first package layout mirroring the backend.
 
 ## Repository layout
 
@@ -32,8 +36,8 @@ Monorepo containing:
 ## Getting started
 
 See [`backend/README.md`](backend/README.md) for API setup, environment
-variables, and Firebase configuration. Frontend instructions will live in
-`frontend/README.md` once that phase begins.
+variables, and Firebase configuration, and [`frontend/README.md`](frontend/README.md)
+for the Flutter app.
 
 ## Running with Tilt
 
@@ -62,9 +66,11 @@ the shell that ran `tilt up`.
 
 Captured in detail in `backend/README.md`. Highlights:
 
-- Replaced the spec's mock `POST /api/auth/login` with real Firebase ID-token
-  verification and a `GET /api/auth/me` endpoint. This is more representative
-  of a real integration and costs little extra.
+- Kept the spec's mock `POST /api/auth/login` as a public endpoint for
+  the Flutter sign-in screen, while also adding real Firebase ID-token
+  verification and a `GET /api/auth/me` endpoint for the rest of
+  `/api/**`. The mock login keeps reviewers unblocked; Firebase auth
+  demonstrates real integration for the protected endpoints.
 - A `app.auth.mode=dev` profile bypasses Firebase so reviewers can run the API
   without provisioning a Firebase project. Production-like runs use
   `app.auth.mode=firebase`.
@@ -77,4 +83,4 @@ Captured in detail in `backend/README.md`. Highlights:
 - [x] Phase 2 — Security (Firebase auth filter, dev bypass, Google sign-in verification)
 - [x] Phase 3 — Features (jobs, stats, assistant, auth/me)
 - [x] Phase 4 — Tests & documentation polish
-- [ ] Frontend — Flutter app
+- [x] Frontend — Flutter sign-in screen + job board placeholder

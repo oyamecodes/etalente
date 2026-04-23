@@ -73,6 +73,8 @@ client secret. Flow:
 
 | Method | Path                       | Auth | Notes                                           |
 |--------|----------------------------|------|-------------------------------------------------|
+| POST   | `/api/auth/login`          | no   | Mock email/password login per the spec. Body `{"email": "...", "password": "..."}` (both `@Valid`). Always succeeds with a static token and user `{id:"1", name:"Recruitment Admin"}` — intended for the Flutter client's sign-in screen without Firebase. |
+| POST   | `/api/auth/signup`         | no   | Mock sign-up. Body `{"name", "email", "password", "confirmPassword", "acceptTerms"}`. Bean-Validation enforces non-blank name, valid email, 6–128 char password, `acceptTerms=true`; controller rejects `password != confirmPassword` with a `confirmPassword` field error. Returns the same envelope as `/login` but echoes the submitted `name` and `email` in `user`. No persistence — resubmitting an email is not a conflict. |
 | GET    | `/api/auth/me`             | yes  | Echoes the verified Firebase principal (`uid`, `email`, `name`, `signInProvider`). |
 | POST   | `/api/auth/google-signin`  | yes  | Confirms the ID token was minted via Google Sign-In. 200 with identity if `sign_in_provider=google.com`, 401 otherwise. Body is ignored — the provider check reads the Firebase token claim. |
 | GET    | `/api/jobs`                | yes  | Filters: `type`, `experience`, `location`, `search`. Paging: `page` (default `0`), `size` (default `20`, max `100`). Returns `{content, page, size, total}`. |
@@ -198,9 +200,14 @@ transparently falls back to the canned reply and tags the response with
   `source` propagation.
 - `AssistantControllerTest` — canned reply happy path and `@Valid`-driven
   400s for blank/missing messages.
-- `AuthControllerTest` — MVC slice covering `/api/auth/google-signin`
-  (google-accepted, password-rejected, dev-rejected, missing-provider-rejected)
-  and `/api/auth/me` (provider echoed, dev mode returns `"dev"`).
+- `AuthControllerTest` — MVC slice covering `POST /api/auth/login` (happy
+  path + validation errors on missing/invalid email/password),
+  `POST /api/auth/signup` (happy path echoing submitted name/email,
+  public-without-auth, per-field validation errors for blank name,
+  invalid email, short password, mismatched confirmation, and
+  unaccepted terms), `/api/auth/google-signin` (google-accepted,
+  password-rejected, dev-rejected, missing-provider-rejected), and
+  `/api/auth/me` (provider echoed, dev mode returns `"dev"`).
 - `EtalenteApplicationTests` — context-loads smoke.
 
 All tests run under `app.auth.mode=dev` and `assistant.provider=canned`,
@@ -208,10 +215,13 @@ so no external credentials are required to execute the suite.
 
 ## Assumptions & trade-offs
 
-1. **Real Firebase auth over mock login.** The spec allowed a mock
-   `POST /api/auth/login`. Replaced with Firebase ID-token verification plus
-   `GET /api/auth/me`. A mock login demonstrates nothing about real auth
-   integration and the spec explicitly asked for Firebase.
+1. **Mock login/signup alongside real Firebase auth.** The spec asked for a mock
+   `POST /api/auth/login`; we provide it (public endpoint, static token) so
+   the Flutter sign-in screen works without any Firebase project.
+   `POST /api/auth/signup` follows the same mock pattern so the sign-up
+   screen can be built and demoed end-to-end against the same backend.
+   For the rest of `/api/**` we use Firebase ID-token verification plus
+   `GET /api/auth/me`, which is more representative of a real integration.
 2. **`app.auth.mode=dev` is a reviewer convenience**, not a production mode.
    It injects a static principal so the API can be exercised without a
    Firebase project. Tests also run in this mode.
