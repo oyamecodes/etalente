@@ -1,0 +1,32 @@
+# Compose file for the etalente backend. The Flutter frontend is not
+# containerised — run it with `flutter run` against this service.
+#
+# Usage:
+#   docker compose up --build      # starts API on http://localhost:8080
+#   docker compose down
+#
+# Override auth / assistant via env vars (or an .env file next to this
+# compose file). Dev auth + canned assistant are the defaults so the
+# image runs with zero configuration.
+
+services:
+  backend:
+    build: ./backend
+    image: etalente-backend:local
+    container_name: etalente-backend
+    ports:
+      - "8080:8080"
+    environment:
+      APP_AUTH_MODE: ${APP_AUTH_MODE:-dev}
+      ASSISTANT_PROVIDER: ${ASSISTANT_PROVIDER:-canned}
+      ASSISTANT_API_KEY: ${ASSISTANT_API_KEY:-}
+      # Either of these activates Firebase auth when APP_AUTH_MODE=firebase.
+      FIREBASE_CREDENTIALS_JSON: ${FIREBASE_CREDENTIALS_JSON:-}
+      FIREBASE_CREDENTIALS_PATH: ${FIREBASE_CREDENTIALS_PATH:-}
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/actuator/health"]
+      interval: 15s
+      timeout: 3s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped

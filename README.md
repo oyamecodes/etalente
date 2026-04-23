@@ -62,6 +62,32 @@ resource — click its refresh icon to run `./mvnw test` on demand. Backend env
 vars (`ASSISTANT_API_KEY`, `APP_AUTH_MODE`, `FIREBASE_*`) are inherited from
 the shell that ran `tilt up`.
 
+## Running with Docker
+
+A multi-stage `backend/Dockerfile` and a root `docker-compose.yml` are
+provided for reviewers who prefer a container-only workflow (no local
+JDK / Maven needed beyond Docker itself).
+
+```bash
+docker compose up --build       # API on http://localhost:8080
+docker compose down
+```
+
+Defaults: `APP_AUTH_MODE=dev`, `ASSISTANT_PROVIDER=canned` — the image
+runs with zero configuration. Override via shell env or an `.env` file
+next to `docker-compose.yml`:
+
+```bash
+APP_AUTH_MODE=firebase \
+FIREBASE_CREDENTIALS_JSON="$(cat serviceAccount.json)" \
+ASSISTANT_PROVIDER=gemini ASSISTANT_API_KEY=... \
+docker compose up --build
+```
+
+The Flutter frontend is intentionally **not** containerised — run it
+with `flutter run` against the exposed API. Point it at the container
+with `--dart-define=API_BASE_URL=http://localhost:8080`.
+
 ## Assumptions & trade-offs
 
 Captured in detail in `backend/README.md`. Highlights:
@@ -84,3 +110,24 @@ Captured in detail in `backend/README.md`. Highlights:
 - [x] Phase 3 — Features (jobs, stats, assistant, auth/me)
 - [x] Phase 4 — Tests & documentation polish
 - [x] Frontend — Flutter sign-in screen + job board placeholder
+
+## What I'd improve with more time
+
+- **Persistent storage**: swap the in-memory `JobRepository` for JPA +
+  Flyway (the interface was already carved out for this).
+- **Secure token storage on the client**: the sign-in token currently
+  lives in memory only; `flutter_secure_storage` would survive app
+  restarts.
+- **Real sign-up flow**: `POST /api/auth/signup` is a mock echo — wire
+  it to Firebase Authentication and persist the resulting user.
+- **Pagination UI**: backend already returns a paged envelope; the
+  Flutter client fetches `size=100` and renders a single column. An
+  infinite-scroll list or explicit pager would scale better.
+- **Assistant streaming**: `/api/assistant/message` is synchronous; SSE
+  / WebSocket streaming would make the Gemini provider feel live.
+- **Accessibility pass**: colour-contrast audit on the navy/yellow
+  palette, keyboard navigation for the filter pills and assistant
+  popup, semantic labels on icon-only buttons.
+- **End-to-end tests**: a Patrol or `integration_test` suite driving
+  sign-in → job board → details → assistant would complement the
+  current widget tests.
