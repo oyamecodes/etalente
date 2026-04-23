@@ -28,4 +28,8 @@ class JobRepository {
       bearerToken: bearerToken,
     );
   }
+
+  Future<JobDetail> findById(String id, {String? bearerToken}) {
+    return _api.findById(id, bearerToken: bearerToken);
+  }
 }

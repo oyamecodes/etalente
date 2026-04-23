@@ -32,4 +32,15 @@ class JobApi {
     );
     return JobPage.fromJson(payload);
   }
+
+  /// Fetches a single job detail. Bubbles the underlying
+  /// [ApiException] on 404 / network failures so the controller can
+  /// expose them through its [AsyncValue.error].
+  Future<JobDetail> findById(String id, {String? bearerToken}) async {
+    final payload = await _client.getJson(
+      '/api/jobs/$id',
+      bearerToken: bearerToken,
+    );
+    return JobDetail.fromJson(payload);
+  }
 }

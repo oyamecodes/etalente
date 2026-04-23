@@ -41,6 +41,51 @@ class Job {
   }
 }
 
+/// Detail-view model for a single job — mirrors the backend
+/// `JobDetailDto` returned by `GET /api/jobs/{id}`. Adds `description`
+/// and `skills` on top of [Job].
+class JobDetail {
+  const JobDetail({
+    required this.id,
+    required this.title,
+    required this.location,
+    required this.type,
+    required this.experience,
+    required this.salaryRange,
+    required this.postedBy,
+    required this.closingDate,
+    required this.description,
+    required this.skills,
+  });
+
+  final String id;
+  final String title;
+  final String location;
+  final String type;
+  final String experience;
+  final String salaryRange;
+  final String postedBy;
+  final String closingDate;
+  final String description;
+  final List<String> skills;
+
+  factory JobDetail.fromJson(Map<String, dynamic> json) {
+    final rawSkills = json['skills'] as List<dynamic>? ?? const <dynamic>[];
+    return JobDetail(
+      id: json['id'] as String,
+      title: json['title'] as String,
+      location: json['location'] as String,
+      type: json['type'] as String,
+      experience: json['experience'] as String,
+      salaryRange: json['salaryRange'] as String,
+      postedBy: json['postedBy'] as String,
+      closingDate: json['closingDate'] as String,
+      description: (json['description'] as String?) ?? '',
+      skills: rawSkills.map((e) => e as String).toList(growable: false),
+    );
+  }
+}
+
 /// Matches the backend's shared `PageResponse<T>` envelope. See
 /// `common/web/PageResponse.java` on the server.
 class JobPage {

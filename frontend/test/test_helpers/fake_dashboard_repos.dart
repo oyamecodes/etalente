@@ -22,6 +22,21 @@ class FakeJobRepository extends Mock implements JobRepository {
         )).thenAnswer(
       (_) async => const JobPage(content: [], page: 0, size: 20, total: 0),
     );
+    when(() => findById(any(), bearerToken: any(named: 'bearerToken')))
+        .thenAnswer(
+      (invocation) async => JobDetail(
+        id: invocation.positionalArguments.first as String,
+        title: 'Senior Flutter Engineer',
+        location: 'Cape Town, ZA',
+        type: 'Full-time',
+        experience: '5+ Years',
+        salaryRange: 'R85k - R120k',
+        postedBy: 'Recruitment Team',
+        closingDate: '2026-05-24',
+        description: 'Fake description for tests.',
+        skills: const ['Flutter', 'Dart', 'Riverpod'],
+      ),
+    );
   }
 }
 

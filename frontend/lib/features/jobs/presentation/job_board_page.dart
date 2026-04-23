@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../app/theme.dart';
 import '../../../shared/widgets/dashboard_shell.dart';
@@ -64,6 +65,8 @@ class JobBoardPage extends ConsumerWidget {
                       // closing date — keep that cue for the top result.
                       closingSoon: i == 0,
                       bookmarked: i == 1,
+                      onTap: () =>
+                          context.go('/jobs/${page.content[i].id}'),
                     ),
                     if (i != page.content.length - 1)
                       const SizedBox(height: 16),
