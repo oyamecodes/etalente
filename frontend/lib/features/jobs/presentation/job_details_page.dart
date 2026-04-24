@@ -6,7 +6,7 @@ import '../../../app/theme.dart';
 import '../../../shared/widgets/app_side_nav.dart';
 import '../../../shared/widgets/dashboard_shell.dart';
 import '../../../shared/widgets/featured_talent_card.dart';
-import '../../assistant/application/assistant_open_provider.dart';
+import '../../assistant/presentation/widgets/chat_assistant_fab.dart';
 import '../../assistant/presentation/widgets/chatbot_assistant_card.dart';
 import '../../stats/presentation/widgets/quick_stats_card.dart';
 import '../application/job_detail_controller.dart';
@@ -25,18 +25,10 @@ class JobDetailsPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final detail = ref.watch(jobDetailProvider(jobId));
-    final assistantOpen = ref.watch(assistantOpenProvider);
 
     return DashboardShell(
       active: NavItem.jobPosts,
-      floatingActionButton: assistantOpen
-          ? null
-          : FloatingActionButton(
-              onPressed: () => openAssistantSheet(context),
-              backgroundColor: AppColors.accentYellow,
-              foregroundColor: AppColors.onSurface,
-              child: const Icon(Icons.chat_bubble_outline),
-            ),
+      floatingActionButton: const ChatAssistantFab(),
       body: detail.when(
         loading: () => const Padding(
           padding: EdgeInsets.symmetric(vertical: 48),
