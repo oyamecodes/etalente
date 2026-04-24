@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/api/api_client_provider.dart';
 import '../../auth/application/auth_controller.dart';
 import '../data/assistant_api.dart';
 import '../data/assistant_repository.dart';

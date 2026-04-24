@@ -6,6 +6,7 @@ import '../../../app/theme.dart';
 import '../../../shared/widgets/dashboard_shell.dart';
 import '../../../shared/widgets/app_side_nav.dart';
 import '../../../shared/widgets/featured_talent_card.dart';
+import '../../assistant/application/assistant_open_provider.dart';
 import '../../assistant/presentation/widgets/chatbot_assistant_card.dart';
 import '../../stats/presentation/widgets/quick_stats_card.dart';
 import '../application/job_board_controller.dart';

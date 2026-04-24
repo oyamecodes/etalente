@@ -1,16 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/api/api_client.dart';
+import '../../../core/api/api_client_provider.dart';
 import '../data/auth_api.dart';
 import '../data/auth_repository.dart';
 import '../domain/auth_session.dart';
-
-/// Singleton HTTP client for the app lifetime.
-final apiClientProvider = Provider<ApiClient>((ref) {
-  final client = ApiClient();
-  ref.onDispose(client.dispose);
-  return client;
-});
 
 final authApiProvider =
     Provider<AuthApi>((ref) => AuthApi(ref.watch(apiClientProvider)));

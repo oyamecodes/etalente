@@ -1,7 +1,6 @@
 import 'package:etalente/app/router.dart';
 import 'package:etalente/features/assistant/application/assistant_controller.dart';
 import 'package:etalente/features/assistant/domain/assistant_reply.dart';
-import 'package:etalente/features/assistant/presentation/widgets/chatbot_assistant_card.dart';
 import 'package:etalente/features/auth/application/auth_controller.dart';
 import 'package:etalente/features/auth/domain/auth_session.dart';
 import 'package:etalente/features/jobs/application/job_board_controller.dart';

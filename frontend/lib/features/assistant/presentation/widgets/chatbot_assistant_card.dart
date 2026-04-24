@@ -3,10 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/theme.dart';
 import '../../application/assistant_controller.dart';
-
-/// Tracks whether the assistant popup is currently open. Watched by the
-/// Job Board so the chat FAB can hide while the popup is visible.
-final assistantOpenProvider = StateProvider<bool>((ref) => false);
+import '../../application/assistant_open_provider.dart';
 
 /// Yellow-tinted right-rail card teasing the assistant. Tapping "Ask
 /// Assistant" opens the floating chat popup wired to
