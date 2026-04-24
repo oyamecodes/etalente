@@ -20,7 +20,13 @@ class FakeJobRepository extends Mock implements JobRepository {
           size: any(named: 'size'),
           bearerToken: any(named: 'bearerToken'),
         )).thenAnswer(
-      (_) async => const JobPage(content: [], page: 0, size: 20, total: 0),
+      (_) async => const JobPage(
+        content: [],
+        page: 0,
+        size: 20,
+        total: 0,
+        totalPages: 0,
+      ),
     );
     when(() => findById(any(), bearerToken: any(named: 'bearerToken')))
         .thenAnswer(

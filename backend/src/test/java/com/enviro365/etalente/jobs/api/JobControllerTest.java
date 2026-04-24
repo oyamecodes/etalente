@@ -46,7 +46,8 @@ class JobControllerTest {
                 .andExpect(jsonPath("$.content.length()").value(3))
                 .andExpect(jsonPath("$.page").value(0))
                 .andExpect(jsonPath("$.size").value(3))
-                .andExpect(jsonPath("$.total").value(greaterThan(3)));
+                .andExpect(jsonPath("$.total").value(greaterThan(3)))
+                .andExpect(jsonPath("$.totalPages").value(greaterThan(1)));
     }
 
     @Test

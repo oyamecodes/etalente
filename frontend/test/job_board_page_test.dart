@@ -91,6 +91,7 @@ void main() {
           page: 0,
           size: 20,
           total: 2,
+          totalPages: 1,
         ));
 
     await _pumpJobBoard(tester, jobs: jobs);
@@ -120,6 +121,7 @@ void main() {
           page: 0,
           size: 20,
           total: 1,
+          totalPages: 1,
         ));
 
     await _pumpJobBoard(tester, jobs: jobs);

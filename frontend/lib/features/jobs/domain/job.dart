@@ -94,6 +94,7 @@ class JobPage {
     required this.page,
     required this.size,
     required this.total,
+    required this.totalPages,
   });
 
   final List<Job> content;
@@ -101,16 +102,31 @@ class JobPage {
   final int size;
   final int total;
 
+  /// Total number of pages for the current query — derived from
+  /// `total / size` server-side. Falls back to a client-side derivation
+  /// for older backends that don't emit the field.
+  final int totalPages;
+
+  /// True when another page exists after this one.
+  bool get hasMore => page + 1 < totalPages;
+
   factory JobPage.fromJson(Map<String, dynamic> json) {
     final raw = (json['content'] as List<dynamic>? ?? const <dynamic>[]);
+    final size = (json['size'] as num? ?? 0).toInt();
+    final total = (json['total'] as num? ?? 0).toInt();
+    final totalPagesRaw = json['totalPages'] as num?;
+    final totalPages = totalPagesRaw != null
+        ? totalPagesRaw.toInt()
+        : (size <= 0 ? 0 : (total + size - 1) ~/ size);
     return JobPage(
       content: raw
           .cast<Map<String, dynamic>>()
           .map(Job.fromJson)
           .toList(growable: false),
       page: (json['page'] as num? ?? 0).toInt(),
-      size: (json['size'] as num? ?? 0).toInt(),
-      total: (json['total'] as num? ?? 0).toInt(),
+      size: size,
+      total: total,
+      totalPages: totalPages,
     );
   }
 }
