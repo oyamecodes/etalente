@@ -1,8 +1,14 @@
 target/
+!target/*.jar
+.mvn/wrapper/maven-wrapper.jar
 .idea/
 .vscode/
 *.iml
-.git/
-.gitignore
+.DS_Store
+logs/
+*.log
 HELP.md
+Dockerfile
+.dockerignore
+.gitignore
 README.md

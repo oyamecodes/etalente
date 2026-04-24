@@ -1,38 +1,40 @@
-# Multi-stage build for the etalente backend.
-#
-# Stage 1 runs the Maven build against a Temurin JDK 21 image and
-# produces the Spring Boot fat jar. Stage 2 copies just the jar into a
-# slim JRE image so the runtime surface is minimal.
-#
-# Build:   docker build -t etalente-backend ./backend
-# Run:     docker run --rm -p 8080:8080 etalente-backend
-# Env:     APP_AUTH_MODE=dev (default), ASSISTANT_PROVIDER=canned (default),
-#          ASSISTANT_API_KEY, FIREBASE_CREDENTIALS_JSON — see backend/README.md
-
-FROM eclipse-temurin:21-jdk-alpine AS build
+# syntax=docker/dockerfile:1.7
+# -----------------------------------------------------------------------------
+# Stage 1 — build the Spring Boot fat jar with the Maven Wrapper.
+# Using the Eclipse Temurin 21 JDK image lets us match the `java.version`
+# declared in pom.xml without depending on whatever JDK the host happens
+# to have installed.
+# -----------------------------------------------------------------------------
+FROM eclipse-temurin:21-jdk AS build
 WORKDIR /workspace
 
-# Copy Maven wrapper + pom first so `dependency:go-offline` is cached
-# across source-only rebuilds.
-COPY .mvn .mvn
+# Copy only the wrapper + pom first so the dependency layer can cache
+# across source-only changes.
+COPY .mvn/ .mvn/
 COPY mvnw pom.xml ./
-RUN chmod +x mvnw && ./mvnw -q -DskipTests dependency:go-offline
+RUN --mount=type=cache,target=/root/.m2 ./mvnw -q -DskipTests dependency:go-offline
 
-COPY src src
-RUN ./mvnw -q -DskipTests package \
-    && cp target/*.jar app.jar
+COPY src/ src/
+RUN --mount=type=cache,target=/root/.m2 ./mvnw -q -DskipTests package \
+    && cp target/*.jar /workspace/app.jar
 
-FROM eclipse-temurin:21-jre-alpine
+# -----------------------------------------------------------------------------
+# Stage 2 — minimal JRE runtime. `jre-alpine` keeps the final image small
+# while still providing the glibc-compatible shim musl-java needs.
+# -----------------------------------------------------------------------------
+FROM eclipse-temurin:21-jre-alpine AS runtime
+RUN apk add --no-cache curl tini \
+    && addgroup -S app && adduser -S app -G app
 WORKDIR /app
+COPY --from=build --chown=app:app /workspace/app.jar ./app.jar
 
-# Non-root runtime user.
-RUN addgroup -S etalente && adduser -S -G etalente etalente
-USER etalente
-
-COPY --from=build /workspace/app.jar /app/app.jar
-
+USER app
 EXPOSE 8080
 
-# Reasonable container-aware JVM defaults.
-ENV JAVA_OPTS="-XX:MaxRAMPercentage=75"
-ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar /app/app.jar"]
+# Compose wires the actuator healthcheck; this one is a defensive default
+# so `docker run` picks up failures too.
+HEALTHCHECK --interval=10s --timeout=3s --start-period=30s --retries=5 \
+  CMD curl -fsS http://localhost:8080/actuator/health || exit 1
+
+# tini reaps zombies and forwards signals cleanly to the JVM.
+ENTRYPOINT ["/sbin/tini", "--", "java", "-jar", "/app/app.jar"]

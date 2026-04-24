@@ -64,29 +64,50 @@ the shell that ran `tilt up`.
 
 ## Running with Docker
 
-A multi-stage `backend/Dockerfile` and a root `docker-compose.yml` are
-provided for reviewers who prefer a container-only workflow (no local
-JDK / Maven needed beyond Docker itself).
+Multi-stage Dockerfiles in `backend/` and `frontend/` plus a root
+`docker-compose.yml` bring the whole stack up with one command — no
+local JDK, Maven, or Flutter SDK needed beyond Docker itself.
 
 ```bash
-docker compose up --build       # API on http://localhost:8080
+docker compose up --build       # SPA on http://localhost:8080
 docker compose down
 ```
 
-Defaults: `APP_AUTH_MODE=dev`, `ASSISTANT_PROVIDER=canned` — the image
+Topology:
+
+- **frontend** — multi-stage build (`flutter build web` → `nginx:alpine`)
+  serving the compiled bundle on port 80 (mapped to host `:8080` by
+  default; override with `FRONTEND_PORT`).
+- **backend** — multi-stage build (Maven → `eclipse-temurin:21-jre-alpine`)
+  running the Spring Boot fat jar on port 8080 (mapped to host `:8081`
+  for direct `curl` / Swagger access; override with `BACKEND_PORT`).
+- The frontend nginx reverse-proxies `/api`, `/actuator`, `/v3/api-docs`,
+  and `/swagger-ui` to the backend over the private `etalente` network,
+  so the browser only ever talks to one origin. **No CORS dance.** The
+  SPA is built with `API_BASE_URL=""` so it uses relative URLs — the
+  same image works unchanged in any deploy environment.
+- Compose gates `frontend` on the backend's `/actuator/health` so the
+  SPA never comes up against a cold API.
+
+Defaults: `APP_AUTH_MODE=dev`, `ASSISTANT_PROVIDER=canned` — the stack
 runs with zero configuration. Override via shell env or an `.env` file
 next to `docker-compose.yml`:
 
 ```bash
 APP_AUTH_MODE=firebase \
+FIREBASE_PROJECT_ID=your-project \
 FIREBASE_CREDENTIALS_JSON="$(cat serviceAccount.json)" \
 ASSISTANT_PROVIDER=gemini ASSISTANT_API_KEY=... \
 docker compose up --build
 ```
 
-The Flutter frontend is intentionally **not** containerised — run it
-with `flutter run` against the exposed API. Point it at the container
-with `--dart-define=API_BASE_URL=http://localhost:8080`.
+To ship the frontend image standalone against a remote API (skipping
+the nginx proxy), bake the absolute URL at build time:
+
+```bash
+docker build -t etalente-frontend \
+  --build-arg API_BASE_URL=https://api.example.com ./frontend
+```
 
 ## Assumptions & trade-offs
 

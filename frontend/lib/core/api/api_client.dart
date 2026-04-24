@@ -20,12 +20,18 @@ class ApiClient {
 
   /// Base URL resolution order:
   ///
-  /// 1. `--dart-define=API_BASE_URL=...` (explicit wins).
+  /// 1. `--dart-define=API_BASE_URL=...` (explicit wins). Pass an empty
+  ///    string to force same-origin relative URLs — used by the Docker
+  ///    build where nginx reverse-proxies `/api` to the backend.
   /// 2. Platform defaults: `10.0.2.2:8080` on Android emulator (loopback
   ///    alias to host), `localhost:8080` everywhere else.
   static String get defaultBaseUrl {
-    const fromDefine = String.fromEnvironment('API_BASE_URL');
-    if (fromDefine.isNotEmpty) return fromDefine;
+    // `hasEnvironment` distinguishes "defined as empty" (relative URLs)
+    // from "not defined at all" (fall back to platform defaults).
+    const hasDefine = bool.hasEnvironment('API_BASE_URL');
+    if (hasDefine) {
+      return const String.fromEnvironment('API_BASE_URL');
+    }
     if (!kIsWeb && Platform.isAndroid) return 'http://10.0.2.2:8080';
     return 'http://localhost:8080';
   }

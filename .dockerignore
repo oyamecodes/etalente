@@ -1,0 +1,10 @@
+.git/
+.github/
+.idea/
+.vscode/
+Tiltfile
+tilt_modules/
+*.md
+!README.md
+!backend/README.md
+!frontend/README.md
