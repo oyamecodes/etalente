@@ -77,7 +77,7 @@ client secret. Flow:
 | POST   | `/api/auth/signup`         | no   | Mock sign-up. Body `{"name", "email", "password", "confirmPassword", "acceptTerms"}`. Bean-Validation enforces non-blank name, valid email, 6–128 char password, `acceptTerms=true`; controller rejects `password != confirmPassword` with a `confirmPassword` field error. Returns the same envelope as `/login` but echoes the submitted `name` and `email` in `user`. No persistence — resubmitting an email is not a conflict. |
 | GET    | `/api/auth/me`             | yes  | Echoes the verified Firebase principal (`uid`, `email`, `name`, `signInProvider`). |
 | POST   | `/api/auth/google-signin`  | yes  | Confirms the ID token was minted via Google Sign-In. 200 with identity if `sign_in_provider=google.com`, 401 otherwise. Body is ignored — the provider check reads the Firebase token claim. |
-| GET    | `/api/jobs`                | yes  | Filters: `type`, `experience`, `location`, `search`. Paging: `page` (default `0`), `size` (default `20`, max `100`). Returns `{content, page, size, total}`. |
+| GET    | `/api/jobs`                | yes  | Filters: `type`, `experience`, `location`, `search`. Paging: `page` (default `0`), `size` (default `20`, max `100`). Returns `{content, page, size, totalPages, total, hasMore}`. 400 on unknown `type` values. |
 | GET    | `/api/jobs/{id}`           | yes  | Full job details including `description` and `skills`. 404 if unknown. |
 | GET    | `/api/stats`               | yes  | Dashboard summary: `{activePosts, newApplicants, interviewsToday}`. |
 | POST   | `/api/assistant/message`   | yes  | Body `{"message": "..."}` (non-blank, max 2000 chars). Returns `{reply, timestamp, source}`. `source` is `canned`, `gemini`, or `fallback` (see Assistant section below). |
@@ -235,7 +235,9 @@ so no external credentials are required to execute the suite.
    Firebase, but couples the backend to Firebase (acceptable — that is
    the explicit choice for this project).
 6. **Pagination envelope** on `/api/jobs` returns
-   `{content, page, size, total}`. Client-side filtering is still fine;
+   `{content, page, size, totalPages, total, hasMore}` — `totalPages`
+   and `hasMore` are derived server-side so clients don't have to
+   reimplement the maths. Client-side filtering is still fine;
    server-side filters are additionally provided.
 7. **Assistant is provider-pluggable** with a canned fallback. The
    default `canned` provider keeps reviewers productive without any API

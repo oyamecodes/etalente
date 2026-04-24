@@ -113,7 +113,7 @@ Captured in detail in `backend/README.md`. Highlights:
 - [x] Phase 2 — Security (Firebase auth filter, dev bypass, Google sign-in verification)
 - [x] Phase 3 — Features (jobs, stats, assistant, auth/me)
 - [x] Phase 4 — Tests & documentation polish
-- [x] Frontend — Flutter sign-in screen + job board placeholder
+- [x] Frontend — sign-in, sign-up, Job Board, Job Details, Chatbot assistant
 
 ## What I'd improve with more time
 
@@ -124,9 +124,10 @@ Captured in detail in `backend/README.md`. Highlights:
   restarts.
 - **Real sign-up flow**: `POST /api/auth/signup` is a mock echo — wire
   it to Firebase Authentication and persist the resulting user.
-- **Pagination UI**: backend already returns a paged envelope; the
-  Flutter client fetches `size=100` and renders a single column. An
-  infinite-scroll list or explicit pager would scale better.
+- **Pagination UI**: currently a simple page-based pager
+  (Prev / Page X of Y / Next, default `size=10`). Swapping to infinite
+  scroll with a `ScrollController` + `hasMore` tail is straightforward
+  — the envelope already carries `totalPages` and `hasMore`.
 - **Assistant streaming**: `/api/assistant/message` is synchronous; SSE
   / WebSocket streaming would make the Gemini provider feel live.
 - **Accessibility pass**: colour-contrast audit on the navy/yellow
