@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/theme.dart';
 import '../../application/assistant_open_provider.dart';
-import 'chatbot_assistant_card.dart' show openAssistantSheet;
+import 'open_assistant_sheet.dart';
 
 /// Floating-action button that opens the assistant popup and hides
 /// itself while the popup is mounted (so it doesn't overlap the
