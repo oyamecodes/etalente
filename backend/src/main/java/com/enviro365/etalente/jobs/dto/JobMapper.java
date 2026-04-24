@@ -15,6 +15,7 @@ public final class JobMapper {
         return new JobDto(
                 job.id(),
                 job.title(),
+                job.company(),
                 job.location(),
                 job.type().wire(),
                 job.experience(),
@@ -27,6 +28,7 @@ public final class JobMapper {
         return new JobDetailDto(
                 job.id(),
                 job.title(),
+                job.company(),
                 job.location(),
                 job.type().wire(),
                 job.experience(),

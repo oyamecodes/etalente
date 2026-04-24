@@ -33,6 +33,7 @@ class FakeJobRepository extends Mock implements JobRepository {
       (invocation) async => JobDetail(
         id: invocation.positionalArguments.first as String,
         title: 'Senior Flutter Engineer',
+        company: 'Enviro365',
         location: 'Cape Town, ZA',
         type: 'Full-time',
         experience: '5+ Years',

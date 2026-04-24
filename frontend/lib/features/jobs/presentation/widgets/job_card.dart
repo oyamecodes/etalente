@@ -33,7 +33,6 @@ class JobCard extends StatelessWidget {
   const JobCard({
     super.key,
     required this.job,
-    this.company = 'eTalente Systems',
     this.bookmarked = false,
     this.closingSoon = false,
     this.onTap,
@@ -41,11 +40,6 @@ class JobCard extends StatelessWidget {
   });
 
   final Job job;
-
-  /// Mock domain doesn't include a company name on the wire — the mock
-  /// shows one per card. We carry this at the widget level so callers
-  /// can supply a stable value (or a future endpoint can populate it).
-  final String company;
 
   final bool bookmarked;
 
@@ -104,7 +98,9 @@ class JobCard extends StatelessWidget {
                                 text: job.location),
                             _MetaChip(
                                 icon: Icons.business_outlined,
-                                text: company),
+                                text: job.company.isEmpty
+                                    ? 'eTalente Systems'
+                                    : job.company),
                             _TypePill(type: job.type, style: style),
                           ],
                         ),

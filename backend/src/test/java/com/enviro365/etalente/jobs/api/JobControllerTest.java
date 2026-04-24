@@ -66,8 +66,16 @@ class JobControllerTest {
         mockMvc.perform(get("/api/jobs/job-1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value("job-1"))
+                .andExpect(jsonPath("$.company").isNotEmpty())
                 .andExpect(jsonPath("$.description").isNotEmpty())
                 .andExpect(jsonPath("$.skills").isArray());
+    }
+
+    @Test
+    void listContentExposesCompany() throws Exception {
+        mockMvc.perform(get("/api/jobs").param("size", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].company").isNotEmpty());
     }
 
     @Test

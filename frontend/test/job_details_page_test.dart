@@ -52,6 +52,7 @@ void main() {
       (_) async => const JobDetail(
         id: 'job-1',
         title: 'Principal Platform Engineer',
+        company: 'Enviro365',
         location: 'Johannesburg, ZA',
         type: 'Full-time',
         experience: '7+ Years',

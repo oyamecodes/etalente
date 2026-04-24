@@ -10,6 +10,7 @@ import java.util.List;
 public record JobDetailDto(
         String id,
         String title,
+        String company,
         String location,
         String type,
         String experience,

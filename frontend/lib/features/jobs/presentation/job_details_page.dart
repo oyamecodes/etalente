@@ -81,6 +81,8 @@ class _DetailsBody extends StatelessWidget {
                 spacing: 16,
                 runSpacing: 6,
                 children: [
+                  if (job.company.isNotEmpty)
+                    _MetaChip(icon: Icons.business_outlined, text: job.company),
                   _MetaChip(icon: Icons.place_outlined, text: job.location),
                   _MetaChip(icon: Icons.work_outline, text: job.type),
                   _MetaChip(

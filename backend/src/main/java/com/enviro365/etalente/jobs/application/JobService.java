@@ -115,6 +115,7 @@ public class JobService {
 
     private static boolean matchesSearch(Job job, String needle) {
         if (containsIgnoreCase(job.title(), needle)) return true;
+        if (containsIgnoreCase(job.company(), needle)) return true;
         if (containsIgnoreCase(job.location(), needle)) return true;
         if (containsIgnoreCase(job.description(), needle)) return true;
         if (job.skills() != null) {

@@ -10,6 +10,7 @@ import java.time.LocalDate;
 public record JobDto(
         String id,
         String title,
+        String company,
         String location,
         String type,
         String experience,

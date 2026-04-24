@@ -18,6 +18,7 @@ import lombok.Builder;
 public record Job(
         String id,
         String title,
+        String company,
         String location,
         EmploymentType type,
         String experience,

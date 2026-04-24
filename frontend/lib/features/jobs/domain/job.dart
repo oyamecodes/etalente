@@ -4,6 +4,7 @@ class Job {
   const Job({
     required this.id,
     required this.title,
+    required this.company,
     required this.location,
     required this.type,
     required this.experience,
@@ -14,6 +15,11 @@ class Job {
 
   final String id;
   final String title;
+
+  /// Hiring company name. Sent by the backend as `company`; older
+  /// fixtures without the field fall back to an empty string so the
+  /// UI can choose its own placeholder.
+  final String company;
   final String location;
 
   /// Wire-form employment type. One of: `Full-time`, `Contract`,
@@ -31,6 +37,7 @@ class Job {
     return Job(
       id: json['id'] as String,
       title: json['title'] as String,
+      company: (json['company'] as String?) ?? '',
       location: json['location'] as String,
       type: json['type'] as String,
       experience: json['experience'] as String,
@@ -48,6 +55,7 @@ class JobDetail {
   const JobDetail({
     required this.id,
     required this.title,
+    required this.company,
     required this.location,
     required this.type,
     required this.experience,
@@ -60,6 +68,7 @@ class JobDetail {
 
   final String id;
   final String title;
+  final String company;
   final String location;
   final String type;
   final String experience;
@@ -74,6 +83,7 @@ class JobDetail {
     return JobDetail(
       id: json['id'] as String,
       title: json['title'] as String,
+      company: (json['company'] as String?) ?? '',
       location: json['location'] as String,
       type: json['type'] as String,
       experience: json['experience'] as String,

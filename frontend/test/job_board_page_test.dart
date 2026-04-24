@@ -16,6 +16,7 @@ import 'test_helpers/fake_dashboard_repos.dart';
 const _job1 = Job(
   id: 'job-1',
   title: 'Senior Flutter Engineer',
+  company: 'Enviro365',
   location: 'Cape Town, ZA',
   type: 'Full-time',
   experience: '5+ Years',
@@ -27,6 +28,7 @@ const _job1 = Job(
 const _job2 = Job(
   id: 'job-2',
   title: 'Contract Backend Developer',
+  company: 'Enviro365 Labs',
   location: 'Remote',
   type: 'Contract',
   experience: '3+ Years',
