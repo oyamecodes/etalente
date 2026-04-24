@@ -175,3 +175,21 @@ surfaces `message` and, when present, per-field messages from `fieldErrors`
 - [x] Chatbot assistant sheet wired to `/api/assistant/message`
 - [ ] Firebase sign-in (Email/Password + Google) against real `/api/**`
 - [ ] Secure token storage (currently in-memory only)
+
+## What I'd improve with more time
+
+- **Secure token storage** — the sign-in token currently lives in
+  memory only; `flutter_secure_storage` would survive app restarts.
+- **Infinite scroll** — the page-based pager works, but a
+  `ScrollController` + `hasMore` tail would feel smoother. The
+  envelope already carries both `totalPages` and `hasMore`.
+- **Accessibility pass** — colour-contrast audit on the navy/yellow
+  palette, keyboard navigation for the filter pills and assistant
+  popup, semantic labels on icon-only buttons.
+- **End-to-end tests** — a Patrol or `integration_test` suite driving
+  sign-in → job board → details → assistant, complementing the
+  current widget tests.
+- **Dark mode** — the palette is pinned to the supplied mocks via
+  hard-coded `AppColors` tokens; a proper dark theme means redefining
+  every token per-brightness and routing widgets through a
+  `ThemeExtension`. Left out to avoid regressing mock fidelity.

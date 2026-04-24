@@ -247,8 +247,18 @@ so no external credentials are required to execute the suite.
 
 ## What I'd improve with more time
 
-- Persist jobs and applications in Postgres with Flyway migrations.
-- Expand the assistant to a real tool-using agent.
-- Contract tests (Spring Cloud Contract) shared with the Flutter client.
-- Rate limiting and audit logging on authenticated endpoints.
-- Docker Compose + GitHub Actions CI.
+- **Persistent storage** — swap the in-memory `JobRepository` for JPA +
+  Flyway migrations against Postgres. The repository interface was
+  carved out for exactly this.
+- **Real sign-up flow** — `POST /api/auth/signup` is a mock echo; wire
+  it to Firebase Authentication and persist the resulting user.
+- **Assistant streaming** — `/api/assistant/message` is synchronous;
+  SSE / WebSocket streaming would make the Gemini provider feel live.
+  Upgrade the assistant to a real tool-using agent with memory.
+- **Contract tests** — Spring Cloud Contract stubs shared with the
+  Flutter client, so both sides of the API envelope stay in lock-step.
+- **Rate limiting & audit logging** on authenticated endpoints
+  (Bucket4j for rate limits; a structured audit appender for the log).
+- **CI** — GitHub Actions pipeline running `./mvnw verify`,
+  `flutter analyze`, and `flutter test` on each PR, plus Docker image
+  publishing on tagged releases.

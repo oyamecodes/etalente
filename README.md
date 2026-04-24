@@ -1,163 +1,182 @@
 # eTalente
 
-Simplified recruitment portal built for the Enviro365 Flutter Technical Assessment.
+Simplified recruitment portal built for the **Enviro365 Flutter Technical
+Assessment**.
 
-Monorepo containing:
+- Spring Boot 3 REST API (Java 21) — `backend/`
+- Flutter web/mobile app (sign-in, sign-up, Job Board, Job Details,
+  chatbot assistant) — `frontend/`
 
-- **`backend/`** — Spring Boot 3 REST API (Java 21, Maven).
-- **`frontend/`** — Flutter 3+ application (sign-in screen + job board placeholder).
+The repo ships with Dockerfiles and a `docker-compose.yml` so you can
+run the whole thing with **one command** — no JDK, Maven, or Flutter
+SDK installed on your machine.
 
-## Architecture at a glance
+---
 
-- **Auth**: Two paths coexist.
-  - `POST /api/auth/login` — public mock login (email + password) used by
-    the Flutter sign-in screen. Always succeeds; returns a static token
-    and user. Keeps reviewers productive without a Firebase project.
-  - Firebase ID-token verification for the rest of `/api/**`. The Flutter
-    app (post-integration) signs the user in with Firebase and attaches
-    the ID token as `Authorization: Bearer <token>`; the backend verifies
-    it with the Firebase Admin SDK. `POST /api/auth/google-signin`
-    additionally asserts the token was minted via Google.
-- **Backend**: stateless REST API. Data is in-memory (no database required per
-  the spec) behind a repository interface so it can be swapped for JPA later.
-- **Frontend**: Flutter, Riverpod for state, `go_router` for routing,
-  feature-first package layout mirroring the backend.
+## Quickstart (one command)
+
+**Prerequisites:** [Docker Desktop](https://docs.docker.com/desktop/) —
+that's it.
+
+```bash
+git clone https://github.com/oyamecodes/etalente.git
+cd etalente
+docker compose up --build
+```
+
+First build takes ~3–5 minutes (Flutter web SDK + Maven dependencies).
+Subsequent runs start in seconds thanks to layer caching.
+
+Then open **<http://localhost:8080>** in your browser.
+
+To stop the stack:
+
+```bash
+docker compose down
+```
+
+### Logging in
+
+The sign-in screen accepts **any** email/password — it's a mock endpoint
+per the assessment spec. After login you land on the Job Board.
+
+If you want to try the real Firebase auth path, see
+[`backend/README.md`](backend/README.md#running-against-a-real-firebase-project).
+
+---
+
+## What you'll see
+
+| Path | Screen | Notes |
+|------|--------|-------|
+| `/` | Sign-in | Mock endpoint; always succeeds. |
+| `/sign-up` | Sign-up | Matches the live etalente.co.za design. |
+| `/jobs` | Job Board | 28 seed jobs, filter pills, search, pager. |
+| `/jobs/:id` | Job Details | Full description + required skills. |
+
+Other niceties on the Job Board:
+
+- **Chatbot assistant** (yellow button, bottom right) — quick-reply
+  chips, responsive popup (bottom-right on desktop, fullscreen on
+  mobile).
+- **Quick Stats** right-rail card — live counts from `/api/stats`.
+- **Session-aware routing** — deep-linking to `/jobs` while signed-out
+  redirects to `/`; signing in while on `/` redirects to `/jobs`.
+
+The backend API is also reachable directly:
+
+- Swagger UI: <http://localhost:8081/swagger-ui.html>
+- Health: <http://localhost:8081/actuator/health>
+- Jobs: <http://localhost:8081/api/jobs?size=5>
+
+---
 
 ## Repository layout
 
 ```
 .
-├── backend/     Spring Boot API
-├── frontend/    Flutter app (placeholder)
-├── AGENTS.md    Contributor / agent guidance
-└── README.md    (this file)
+├── backend/              Spring Boot 3 API (Java 21, Maven)
+│   └── README.md         → API setup, endpoints, config
+├── frontend/             Flutter app (Riverpod + go_router)
+│   └── README.md         → Flutter setup, architecture, tests
+├── docker-compose.yml    Two-service stack (frontend + backend)
+├── Tiltfile              Optional dev loop (local processes, no Docker)
+├── AGENTS.md             Contributor / AI-agent guidance
+└── README.md             (this file)
 ```
 
-## Getting started
+---
 
-See [`backend/README.md`](backend/README.md) for API setup, environment
-variables, and Firebase configuration, and [`frontend/README.md`](frontend/README.md)
-for the Flutter app.
+## Running without Docker
 
-## Running with Tilt
+If you'd rather hack on the code directly, each service has its own
+dev loop documented in its README:
 
-[Tilt](https://tilt.dev) supervises the backend and (optionally) the Flutter
-frontend as host-side processes — no Docker, no Kubernetes. One command, one
-dashboard, unified logs.
+- **Backend**: [`backend/README.md`](backend/README.md) — `./mvnw spring-boot:run`
+- **Frontend**: [`frontend/README.md`](frontend/README.md) — `flutter run -d chrome`
 
-Prerequisites:
-
-- JDK 21 and the bundled `./mvnw` (already in `backend/`).
-- Flutter SDK on `PATH` (only needed when running with `--frontend`).
-- Tilt: `curl -fsSL https://raw.githubusercontent.com/tilt-dev/tilt/master/scripts/install.sh | bash`
+Or use [Tilt](https://tilt.dev) to run both as supervised host
+processes (no containers):
 
 ```bash
-tilt up                                        # backend only
-tilt up -- --frontend                          # backend + Flutter on emulator-5554
-tilt up -- --frontend --flutter-device=chrome  # backend + Flutter on Chrome
+tilt up -- --frontend   # backend + Flutter, unified dashboard
 ```
 
-The Tilt UI (<http://localhost:10350>) exposes a manual **`backend-tests`**
-resource — click its refresh icon to run `./mvnw test` on demand. Backend env
-vars (`ASSISTANT_API_KEY`, `APP_AUTH_MODE`, `FIREBASE_*`) are inherited from
-the shell that ran `tilt up`.
+Details in [`AGENTS.md`](AGENTS.md#local-orchestration-tilt).
 
-## Running with Docker
+---
 
-Multi-stage Dockerfiles in `backend/` and `frontend/` plus a root
-`docker-compose.yml` bring the whole stack up with one command — no
-local JDK, Maven, or Flutter SDK needed beyond Docker itself.
+## Configuration
 
-```bash
-docker compose up --build       # SPA on http://localhost:8080
-docker compose down
-```
-
-Topology:
-
-- **frontend** — multi-stage build (`flutter build web` → `nginx:alpine`)
-  serving the compiled bundle on port 80 (mapped to host `:8080` by
-  default; override with `FRONTEND_PORT`).
-- **backend** — multi-stage build (Maven → `eclipse-temurin:21-jre-alpine`)
-  running the Spring Boot fat jar on port 8080 (mapped to host `:8081`
-  for direct `curl` / Swagger access; override with `BACKEND_PORT`).
-- The frontend nginx reverse-proxies `/api`, `/actuator`, `/v3/api-docs`,
-  and `/swagger-ui` to the backend over the private `etalente` network,
-  so the browser only ever talks to one origin. **No CORS dance.** The
-  SPA is built with `API_BASE_URL=""` so it uses relative URLs — the
-  same image works unchanged in any deploy environment.
-- Compose gates `frontend` on the backend's `/actuator/health` so the
-  SPA never comes up against a cold API.
-
-Defaults: `APP_AUTH_MODE=dev`, `ASSISTANT_PROVIDER=canned` — the stack
-runs with zero configuration. Override via shell env or an `.env` file
+Defaults (`APP_AUTH_MODE=dev`, canned assistant replies) are set so
+the stack runs with **zero configuration**. To override, drop a `.env`
 next to `docker-compose.yml`:
 
-```bash
-APP_AUTH_MODE=firebase \
-FIREBASE_PROJECT_ID=your-project \
-FIREBASE_CREDENTIALS_JSON="$(cat serviceAccount.json)" \
-ASSISTANT_PROVIDER=gemini ASSISTANT_API_KEY=... \
-docker compose up --build
+```env
+# Enable real Firebase ID-token verification
+APP_AUTH_MODE=firebase
+FIREBASE_PROJECT_ID=your-project-id
+FIREBASE_CREDENTIALS_JSON={"type":"service_account",...}   # single line
+
+# Swap the assistant for Google's Gemini
+ASSISTANT_PROVIDER=gemini
+ASSISTANT_API_KEY=your-api-key
+
+# Change exposed host ports
+FRONTEND_PORT=8080
+BACKEND_PORT=8081
 ```
 
-To ship the frontend image standalone against a remote API (skipping
-the nginx proxy), bake the absolute URL at build time:
+`.env` is gitignored — **never** commit service-account JSON.
+
+Full reference: [`backend/README.md`](backend/README.md#configuration-reference).
+
+---
+
+## Architecture at a glance
+
+- **Stateless backend.** No database — jobs live in an in-memory
+  repository behind a domain interface so a real store can swap in
+  without touching callers. Read-through caching on hot paths.
+- **Firebase auth with a dev bypass.** `APP_AUTH_MODE=dev` injects a
+  fake principal so reviewers can run the API without a Firebase
+  project; `APP_AUTH_MODE=firebase` verifies ID tokens with the
+  Firebase Admin SDK.
+- **Feature-first packages** on both sides (`auth/`, `jobs/`,
+  `stats/`, `assistant/`), each split into
+  `api / application / domain / infrastructure`.
+- **Docker deploy**: two containers on a private network. The frontend
+  nginx reverse-proxies `/api` to the backend, so the browser only
+  ever talks to one origin — no CORS dance.
+
+Deep dives live in the service READMEs.
+
+---
+
+## Testing
 
 ```bash
-docker build -t etalente-frontend \
-  --build-arg API_BASE_URL=https://api.example.com ./frontend
+# Backend unit/integration tests (49 tests)
+cd backend && ./mvnw test
+
+# Flutter widget tests (30 tests)
+cd frontend && flutter test
 ```
 
-## Assumptions & trade-offs
+Both suites run with zero external dependencies (dev auth + canned
+assistant, no Firebase project or API keys required).
 
-Captured in detail in `backend/README.md`. Highlights:
+---
 
-- Kept the spec's mock `POST /api/auth/login` as a public endpoint for
-  the Flutter sign-in screen, while also adding real Firebase ID-token
-  verification and a `GET /api/auth/me` endpoint for the rest of
-  `/api/**`. The mock login keeps reviewers unblocked; Firebase auth
-  demonstrates real integration for the protected endpoints.
-- A `app.auth.mode=dev` profile bypasses Firebase so reviewers can run the API
-  without provisioning a Firebase project. Production-like runs use
-  `app.auth.mode=firebase`.
-- Feature-first package layout (`jobs/`, `stats/`, `assistant/`, `auth/`) with
-  internal `api / application / domain / infrastructure` separation.
-- Read-through caching (`@EnableCaching` + in-memory
-  `ConcurrentMapCacheManager`) on `JobService.list` / `findById` and
-  `StatsService.current()` so repeated dashboard loads don't re-walk
-  the mock repository. Swap in Caffeine/Redis for production.
+## Documentation map
 
-## Status
-
-- [x] Phase 1 — Scaffold
-- [x] Phase 2 — Security (Firebase auth filter, dev bypass, Google sign-in verification)
-- [x] Phase 3 — Features (jobs, stats, assistant, auth/me)
-- [x] Phase 4 — Tests & documentation polish
-- [x] Frontend — sign-in, sign-up, Job Board, Job Details, Chatbot assistant
-
-## What I'd improve with more time
-
-- **Persistent storage**: swap the in-memory `JobRepository` for JPA +
-  Flyway (the interface was already carved out for this).
-- **Secure token storage on the client**: the sign-in token currently
-  lives in memory only; `flutter_secure_storage` would survive app
-  restarts.
-- **Real sign-up flow**: `POST /api/auth/signup` is a mock echo — wire
-  it to Firebase Authentication and persist the resulting user.
-- **Pagination UI**: currently a simple page-based pager
-  (Prev / Page X of Y / Next, default `size=10`). Swapping to infinite
-  scroll with a `ScrollController` + `hasMore` tail is straightforward
-  — the envelope already carries `totalPages` and `hasMore`.
-- **Assistant streaming**: `/api/assistant/message` is synchronous; SSE
-  / WebSocket streaming would make the Gemini provider feel live.
-- **Accessibility pass**: colour-contrast audit on the navy/yellow
-  palette, keyboard navigation for the filter pills and assistant
-  popup, semantic labels on icon-only buttons.
-- **End-to-end tests**: a Patrol or `integration_test` suite driving
-  sign-in → job board → details → assistant would complement the
-  current widget tests.
-- **Dark mode**: the palette is currently pinned to the supplied mocks
-  via hard-coded `AppColors` tokens, so a proper dark theme means
-  redefining every token per-brightness and routing widgets through a
-  `ThemeExtension`. Left out to avoid regressing mock fidelity.
+- **[`backend/README.md`](backend/README.md)** — API endpoints,
+  Firebase setup, caching, assistant providers, assumptions &
+  trade-offs, what I'd improve.
+- **[`frontend/README.md`](frontend/README.md)** — Flutter
+  architecture, routing, state management, widget test patterns, what
+  I'd improve.
+- **[`AGENTS.md`](AGENTS.md)** — repo-specific conventions for
+  contributors and AI coding agents.
+- **`Enviro365 - Flutter Technical Assessment.pdf`** — the original
+  spec this project implements.
