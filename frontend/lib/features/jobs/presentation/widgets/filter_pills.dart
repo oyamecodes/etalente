@@ -32,6 +32,7 @@ class FilterPills extends ConsumerWidget {
           onTap: () {
             ref.read(jobBoardFiltersProvider.notifier).state =
                 const JobBoardFilters();
+            ref.read(jobBoardPageProvider.notifier).state = 0;
           },
         ),
         _Pill(
@@ -52,6 +53,7 @@ class FilterPills extends ConsumerWidget {
             ref.read(jobBoardFiltersProvider.notifier).update(
                   (s) => s.copyWith(type: next),
                 );
+            ref.read(jobBoardPageProvider.notifier).state = 0;
           },
         ),
       ],
@@ -92,6 +94,7 @@ class _ExperiencePill extends ConsumerWidget {
         ref.read(jobBoardFiltersProvider.notifier).update(
               (s) => s.copyWith(experience: picked.isEmpty ? null : picked),
             );
+        ref.read(jobBoardPageProvider.notifier).state = 0;
       },
     );
   }

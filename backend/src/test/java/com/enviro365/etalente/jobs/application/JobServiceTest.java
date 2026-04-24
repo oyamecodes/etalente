@@ -24,21 +24,22 @@ class JobServiceTest {
     void listWithoutFiltersReturnsAllSeededJobs() {
         PageResponse<JobDto> page = service.list(new JobQuery(null, null, null, null, 0, 50));
 
-        assertThat(page.total()).isEqualTo(12);
-        assertThat(page.content()).hasSize(12);
+        assertThat(page.total()).isEqualTo(28);
+        assertThat(page.content()).hasSize(28);
         assertThat(page.page()).isZero();
     }
 
     @Test
     void paginationClampsAndSlicesCorrectly() {
-        PageResponse<JobDto> first = service.list(new JobQuery(null, null, null, null, 0, 5));
-        PageResponse<JobDto> second = service.list(new JobQuery(null, null, null, null, 1, 5));
-        PageResponse<JobDto> third = service.list(new JobQuery(null, null, null, null, 2, 5));
+        PageResponse<JobDto> first = service.list(new JobQuery(null, null, null, null, 0, 10));
+        PageResponse<JobDto> second = service.list(new JobQuery(null, null, null, null, 1, 10));
+        PageResponse<JobDto> third = service.list(new JobQuery(null, null, null, null, 2, 10));
 
-        assertThat(first.content()).hasSize(5);
-        assertThat(second.content()).hasSize(5);
-        assertThat(third.content()).hasSize(2); // 12 total
-        assertThat(first.total()).isEqualTo(12);
+        assertThat(first.content()).hasSize(10);
+        assertThat(second.content()).hasSize(10);
+        assertThat(third.content()).hasSize(8); // 28 total
+        assertThat(first.total()).isEqualTo(28);
+        assertThat(first.totalPages()).isEqualTo(3);
     }
 
     @Test

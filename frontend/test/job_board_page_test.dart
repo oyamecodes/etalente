@@ -133,7 +133,7 @@ void main() {
           location: any(named: 'location'),
           search: null,
           page: any(named: 'page'),
-          size: 100,
+          size: 10,
           bearerToken: 'test-token',
         )).called(1);
 
@@ -149,7 +149,7 @@ void main() {
           location: any(named: 'location'),
           search: null,
           page: any(named: 'page'),
-          size: 100,
+          size: 10,
           bearerToken: 'test-token',
         )).called(1);
   });
@@ -181,5 +181,72 @@ void main() {
     expect(find.text('12'), findsOneWidget);
     expect(find.text('48'), findsOneWidget);
     expect(find.text('3'), findsOneWidget);
+  });
+
+  testWidgets('pager renders and tapping Next advances to page 1',
+      (tester) async {
+    final jobs = FakeJobRepository();
+    var callCount = 0;
+    when(() => jobs.listJobs(
+          type: any(named: 'type'),
+          experience: any(named: 'experience'),
+          location: any(named: 'location'),
+          search: any(named: 'search'),
+          page: any(named: 'page'),
+          size: any(named: 'size'),
+          bearerToken: any(named: 'bearerToken'),
+        )).thenAnswer((invocation) async {
+      final page = invocation.namedArguments[#page] as int? ?? 0;
+      callCount++;
+      return JobPage(
+        content: [page == 0 ? _job1 : _job2],
+        page: page,
+        size: 10,
+        total: 28,
+        totalPages: 3,
+      );
+    });
+
+    await _pumpJobBoard(tester, jobs: jobs);
+
+    // Initial page renders job-1 and the "Page 1 of 3" indicator.
+    expect(find.text('Senior Flutter Engineer'), findsOneWidget);
+    expect(find.text('Page 1 of 3'), findsOneWidget);
+    final initialCount = callCount;
+
+    final nextBtn = find.widgetWithText(OutlinedButton, 'Next');
+    await tester.ensureVisible(nextBtn);
+    await tester.pumpAndSettle();
+    await tester.tap(nextBtn);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Contract Backend Developer'), findsOneWidget);
+    expect(find.text('Page 2 of 3'), findsOneWidget);
+    // Ensure the repository was hit again for page 1 — not just a UI swap.
+    expect(callCount, greaterThan(initialCount));
+  });
+
+  testWidgets('pager is hidden when totalPages <= 1', (tester) async {
+    final jobs = FakeJobRepository();
+    when(() => jobs.listJobs(
+          type: any(named: 'type'),
+          experience: any(named: 'experience'),
+          location: any(named: 'location'),
+          search: any(named: 'search'),
+          page: any(named: 'page'),
+          size: any(named: 'size'),
+          bearerToken: any(named: 'bearerToken'),
+        )).thenAnswer((_) async => const JobPage(
+          content: [_job1],
+          page: 0,
+          size: 10,
+          total: 1,
+          totalPages: 1,
+        ));
+
+    await _pumpJobBoard(tester, jobs: jobs);
+
+    expect(find.text('Senior Flutter Engineer'), findsOneWidget);
+    expect(find.textContaining('Page '), findsNothing);
   });
 }

@@ -11,6 +11,7 @@ import '../../assistant/presentation/widgets/chatbot_assistant_card.dart';
 import '../../stats/presentation/widgets/quick_stats_card.dart';
 import '../application/job_board_controller.dart';
 import 'widgets/filter_pills.dart';
+import 'widgets/job_board_pager.dart';
 import 'widgets/job_card.dart';
 
 /// Job Board — post-auth landing page. Adaptive layout via
@@ -64,6 +65,7 @@ class JobBoardPage extends ConsumerWidget {
                     if (i != page.content.length - 1)
                       const SizedBox(height: 16),
                   ],
+                  JobBoardPager(page: page),
                 ],
               );
             },
