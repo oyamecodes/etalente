@@ -74,6 +74,7 @@ All errors use the same JSON shape emitted by `common/error` advice:
 - Widget tests covering `/jobs` must override `jobRepositoryProvider`, `statsRepositoryProvider` *and* `assistantRepositoryProvider` — the shared fakes live in `test/test_helpers/fake_dashboard_repos.dart`. `buildRouter({initialLocation: '/jobs'})` lets tests land directly on the board without running through sign-in.
 - Logo mark, background grid, and decorative graphics are `CustomPainter`s, not SVG/raster assets — keeps `pubspec.yaml` asset-free.
 - Widget tests wrap the app in `MaterialApp.router(routerConfig: buildRouter())` inside a `ProviderScope` with the repo overridden. Wrapping a page in `MaterialApp(home: ...)` will blow up as soon as the page calls `context.go(...)` ("No GoRouter found in context").
+- Routing has two entry points: `buildRouter({initialLocation, refreshListenable, isSignedIn})` is the unguarded factory used by widget tests (land directly on `/jobs` by passing `initialLocation`). `routerProvider` is the Riverpod-owned guarded router wired into the real app shell — unauthenticated visits to any non-public path redirect to `/`, and authenticated visits to `/` or `/sign-up` redirect to `/jobs`. Public paths = `{/, /sign-up}`.
 - Commands (run from `frontend/`): `flutter pub get`, `flutter analyze`, `flutter test`, `flutter run -d chrome`, `flutter run -d <android-device-id>`.
 
 ## Commit style
