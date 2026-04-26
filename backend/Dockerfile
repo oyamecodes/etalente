@@ -27,6 +27,7 @@ RUN apk add --no-cache curl tini \
     && addgroup -S app && adduser -S app -G app
 WORKDIR /app
 COPY --from=build --chown=app:app /workspace/app.jar ./app.jar
+RUN mkdir -p /app/logs && chown -R app:app /app
 
 USER app
 EXPOSE 8080
